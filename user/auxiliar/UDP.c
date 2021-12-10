@@ -1,14 +1,6 @@
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <netdb.h>
 #include "UDP.h"
-#define PORT "58001"
 
-void udp(char *ds_ip, int ds_port, char *message){
+void udp_send(char *ds_ip, int ds_port, char *message){
   int fd,errcode;
   ssize_t n;
   socklen_t addrlen;
@@ -23,12 +15,8 @@ void udp(char *ds_ip, int ds_port, char *message){
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_DGRAM;
 
-  if(gethostname(buffer, 128) == -1)
-    fprint(stderr, "error: %s\n", stderror(errno));
-
   errcode = getaddrinfo(ds_ip, ds_port, &hints, &res);
   if(errcode != 0) exit(1);
-
 
   n = sendto(fd, message, sizeof(message), 0, res->ai_addr, res->ai_addrlen);
   if(n ==-1) exit(1);
@@ -44,7 +32,4 @@ void udp(char *ds_ip, int ds_port, char *message){
 
   freeaddrinfo(res);
   close(fd);
-
-
-
 }
