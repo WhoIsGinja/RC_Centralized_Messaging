@@ -1,6 +1,15 @@
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <stdio.h>
+#include <string.h>
 #include "UDP.h"
 
-void udp_send(char *ds_ip, int ds_port, char *message){
+void udp_send(char *ds_ip, char* ds_port, char *message){
   int fd,errcode;
   ssize_t n;
   socklen_t addrlen;
@@ -25,8 +34,7 @@ void udp_send(char *ds_ip, int ds_port, char *message){
   n = recvfrom(fd, buffer, 128, 0,(struct sockaddr*) &addr, &addrlen);
   if(n == -1) exit(1);
 
-
-  printf("receive from server: %s", buffer);
+  printf("Receive from server: %s", buffer);
 
   /*write(1, "echo: ", 6); write(1, buffer, n);*/
 

@@ -3,7 +3,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <ctype.h> 
+#include <ctype.h>
+#include "auxiliar/UDP.h"
+#include "auxiliar/TCP.h"
 
 struct user_info{
     char uid[5];
@@ -218,14 +220,14 @@ void retrieve(const char* buffer){
 int main(int argc, char *argv[]){
     char DSIP[128], buffer[128];
     char *cmd;
-    int DSport;
+    //!int DSport;
 
     if(gethostname(buffer, 128) == -1){
         fprintf(stderr, "Error getting host name\n");
     }
 
     strcpy(DSIP,buffer);
-    DSport = 58005;
+    //!DSport = 58005;
 
     while(true){
         fgets(buffer, sizeof(buffer), stdin);

@@ -1,12 +1,18 @@
+#include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netdb.h>
+#include <stdio.h>
 #include "TCP.h"
 
-
-char *tcpClient(char *ds_ip, int ds_port, char*message) {
+void tcp_send(char* ds_ip, char* ds_port, char* message) {
     int fd,errcode;
     ssize_t n;
-    socklen_t addrlen;
     struct addrinfo hints,*res;
-    struct sockaddr_in addr;
     char buffer[128];
 
     fd = socket(AF_INET,SOCK_STREAM,0);
@@ -28,7 +34,9 @@ char *tcpClient(char *ds_ip, int ds_port, char*message) {
     n = read(fd, buffer, 128);
     if(n == -1) exit(1);
 
+    printf("Receive from server: %s", buffer);
+
     freeaddrinfo(res);
     close(fd);
-    return buffer;
+    //return buffer;
 }
