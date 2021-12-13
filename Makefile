@@ -1,7 +1,6 @@
 CC   = gcc
 LD   = gcc
 CFLAGS =-Wall -std=gnu99 -I../
-LDFLAGS=-lm -pthread
 
 user: user_src/auxiliar/TCP.o user_src/auxiliar/UDP.o user_src/main.o
 	$(LD) $(CFLAGS) -o user user_src/auxiliar/TCP.o user_src/auxiliar/UDP.o user_src/main.o
