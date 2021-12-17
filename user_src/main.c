@@ -8,8 +8,8 @@
 #include "auxiliar/TCP.h"
 
 struct user_info{
-    char uid[5];
-    char pass[8];
+    char uid[6];
+    char pass[9];
     int logged;
 };
 
@@ -69,7 +69,7 @@ bool check_arg(const char* arg, const char* value, int size, bool alphanum){
 //*Execute the registration command
 void reg(const char* buffer){
     char *uid, *pass;
-    char message[19];
+    char message[20];
 
     //*Get uid and password
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL){
@@ -85,17 +85,15 @@ void reg(const char* buffer){
         return;
     }
 
-    sprintf(message, "REG %s %s\n", uid, pass);
+    snprintf(message, 20, "REG %s %s\n", uid, pass);
 
-    udp_send(DSIP, DSport, message, sizeof(message));
-
-    printf("SEND: %s", message);
+    udp_send(DSIP, DSport, message, sizeof(message)-1);
 }
 
 
 void unr(const char* buffer){
     char *uid, *pass;
-    char message[19];
+    char message[20];
 
     //*Get uid and password
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL){
@@ -111,17 +109,15 @@ void unr(const char* buffer){
         return;
     }
 
-    sprintf(message, "UNR %s %s\n", uid, pass);
+    snprintf(message, 20, "UNR %s %s\n", uid, pass);
 
-    udp_send(DSIP, DSport, message, sizeof(message));
-
-    printf("SEND: %s", message);
+    udp_send(DSIP, DSport, message, sizeof(message)-1);
 }
 
 
 void login(const char* buffer){
     char *uid, *pass;
-    char message[19];
+    char message[20];
 
     //*Get uid and password
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL){
@@ -137,15 +133,14 @@ void login(const char* buffer){
         return;
     }
 
-    sprintf(message, "LOG %s %s\n", uid, pass);
+    snprintf(message, 20, "LOG %s %s\n", uid, pass);
 
-    udp_send(DSIP, DSport, message, sizeof(message));
+    udp_send(DSIP, DSport, message, sizeof(message)-1);
 
     //! DELETE, TEST ONLY
-    strcpy(user.uid, uid);
-    strcpy(user.pass, pass);
+    sprintf(user.uid,"%s",uid);
+    sprintf(user.pass,"%s",pass);
     user.logged = 1;
-
     /*
     if(){
         strcpy(user.uid, uid);
@@ -153,17 +148,15 @@ void login(const char* buffer){
         user.loogged = 1;
     }
     */
-
-    printf("SEND: %s", message);
 }
 
 
 void logout(){
-    char message[19];
-    sprintf(message, "OUT %s %s\n", user.uid, user.pass);
-    udp_send(DSIP, DSport, message, sizeof(message));
+    char message[20];
+    
+    snprintf(message, 20, "OUT %s %s\n", user.uid, user.pass);
+    udp_send(DSIP, DSport, message, sizeof(message)-1);
     //! DELETE, TEST ONLY
-    printf("Logout: %s %s", user.uid, user.pass);
     user.logged = 0;
 
     /*
@@ -171,7 +164,6 @@ void logout(){
         user = 0;
     }
     */
-    printf("SEND: %s", message);
 }
 
 

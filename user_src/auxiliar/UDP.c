@@ -53,7 +53,7 @@ void udp_send(char *ds_ip, char* ds_port, char *message, int size){
     return;
   }
 
-  printf("Receive from server: %s\n", buffer);
+  printf("Receive from server: %s", buffer);
 
   /*write(1, "echo: ", 6); write(1, buffer, n);*/
 
