@@ -95,7 +95,7 @@ void reg(const char* buffer){
 
 void unr(const char* buffer){
     char *uid, *pass;
-    char message[18];
+    char message[19];
 
     //*Get uid and password
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL){
@@ -121,7 +121,7 @@ void unr(const char* buffer){
 
 void login(const char* buffer){
     char *uid, *pass;
-    char message[18];
+    char message[19];
 
     //*Get uid and password
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL){
@@ -159,8 +159,8 @@ void login(const char* buffer){
 
 
 void logout(){
-    char message[18];
-    sprintf(message, "OUT %s %s", user.uid, user.pass);
+    char message[19];
+    sprintf(message, "OUT %s %s\n", user.uid, user.pass);
     //TODO UDP(DSIP, Dsport, message)
     //! DELETE, TEST ONLY
     printf("Logout: %s %s", user.uid, user.pass);
