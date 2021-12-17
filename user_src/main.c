@@ -113,7 +113,7 @@ void unr(const char* buffer){
 
     sprintf(message, "UNR %s %s\n", uid, pass);
 
-    //TODO UDP(DSIP, Dsport, message)
+    udp_send(DSIP, DSport, message, sizeof(message));
 
     printf("SEND: %s", message);
 }
@@ -139,7 +139,7 @@ void login(const char* buffer){
 
     sprintf(message, "LOG %s %s\n", uid, pass);
 
-    //TODO UDP(DSIP, Dsport, message)
+    udp_send(DSIP, DSport, message, sizeof(message));
 
     //! DELETE, TEST ONLY
     strcpy(user.uid, uid);
@@ -161,7 +161,7 @@ void login(const char* buffer){
 void logout(){
     char message[19];
     sprintf(message, "OUT %s %s\n", user.uid, user.pass);
-    //TODO UDP(DSIP, Dsport, message)
+    udp_send(DSIP, DSport, message, sizeof(message));
     //! DELETE, TEST ONLY
     printf("Logout: %s %s", user.uid, user.pass);
     user.logged = 0;
