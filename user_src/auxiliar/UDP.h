@@ -1,6 +1,6 @@
 #ifndef UDP
 #define UDP
 
-void udp_send(char *ds_ip, char* ds_port, char *message);
+void udp_send(char *ds_ip, char* ds_port, char *message, int size);
 
 #endif

@@ -9,7 +9,7 @@
 #include <string.h>
 #include "UDP.h"
 
-void udp_send(char *ds_ip, char* ds_port, char *message){
+void udp_send(char *ds_ip, char* ds_port, char *message, int size){
   int fd,errcode;
   ssize_t n;
   socklen_t addrlen;
@@ -36,7 +36,7 @@ void udp_send(char *ds_ip, char* ds_port, char *message){
     return;
   }
 
-  n = sendto(fd, message, sizeof(message), 0, res->ai_addr, res->ai_addrlen);
+  n = sendto(fd, message, size, 0, res->ai_addr, res->ai_addrlen);
   if(n == -1){
     fprintf(stderr, "Error sending to server\n");
     freeaddrinfo(res);

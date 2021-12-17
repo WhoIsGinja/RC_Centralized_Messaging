@@ -69,7 +69,7 @@ bool check_arg(const char* arg, const char* value, int size, bool alphanum){
 //*Execute the registration command
 void reg(const char* buffer){
     char *uid, *pass;
-    char message[18];
+    char message[19];
 
     //*Get uid and password
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL){
@@ -87,7 +87,7 @@ void reg(const char* buffer){
 
     sprintf(message, "REG %s %s\n", uid, pass);
 
-    udp_send(DSIP, DSport, message);
+    udp_send(DSIP, DSport, message, sizeof(message));
 
     printf("SEND: %s", message);
 }
@@ -229,8 +229,8 @@ int main(int argc, char *argv[]){
         fprintf(stderr, "Error getting host name\n");
     }
 
-    strcpy(DSIP,"tejo.ulisboa.tecnico.pt");
-    strcpy(DSport,"58000");
+    strcpy(DSIP,"tejo.tecnico.ulisboa.pt");
+    strcpy(DSport,"58011");
 
     while(true){
         fgets(buffer, sizeof(buffer), stdin);
