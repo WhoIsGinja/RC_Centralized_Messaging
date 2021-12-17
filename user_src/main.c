@@ -14,6 +14,9 @@ struct user_info{
 };
 
 struct user_info user;
+char DSIP[128];
+char DSport[6];
+
 
 void arguments_error(){
     fprintf(stderr, "Not enough arguments\n");
@@ -84,7 +87,7 @@ void reg(const char* buffer){
 
     sprintf(message, "REG %s %s\n", uid, pass);
 
-    //TODO UDP(DSIP, Dsport, message)
+    udp_send(DSIP, DSport, message);
 
     printf("SEND: %s", message);
 }
@@ -218,16 +221,16 @@ void retrieve(const char* buffer){
 
 
 int main(int argc, char *argv[]){
-    char DSIP[128], buffer[128];
+    char buffer[128];
     char *cmd;
-    //!int DSport;
+
 
     if(gethostname(buffer, 128) == -1){
         fprintf(stderr, "Error getting host name\n");
     }
 
-    strcpy(DSIP,buffer);
-    //!DSport = 58005;
+    strcpy(DSIP,"tejo.ulisboa.tecnico.pt");
+    strcpy(DSport,"58000");
 
     while(true){
         fgets(buffer, sizeof(buffer), stdin);
