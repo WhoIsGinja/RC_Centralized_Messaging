@@ -4,10 +4,11 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include "auxiliar/UDP.h"
-#include "auxiliar/TCP.h"
+#include "auxiliar/connection_controller.h"
+#include "../protocol_constants.h"
 
-struct user_info{
+struct user_info
+{
     char uid[6];
     char pass[9];
     int logged;
@@ -18,7 +19,8 @@ char DSIP[128];
 char DSport[6];
 
 
-void arguments_error(){
+void arguments_error()
+{
     fprintf(stderr, "Not enough arguments\n");
 }
 
@@ -30,33 +32,41 @@ void arguments_error(){
 *size: string size desired (0 to not check)
 *alphanum: true to check alphanumeric char, false to only check numeric
 */
-bool check_arg(const char* arg, const char* value, int size, bool alphanum){
+bool check_arg(const char* arg, const char* value, int size, bool alphanum)
+{
     int i;
     bool error = false;
   
     //*size check
-    if(size != 0){
-        for(i = 0; value[i]!= '\0' ; i++){
-            switch (alphanum){
+    if(size != 0)
+    {
+        for(i = 0; value[i]!= '\0' ; i++)
+        {
+            switch (alphanum)
+            {
                 case true:
-                    if(isalnum(value[i]) == 0){
+                    if(isalnum(value[i]) == 0)
+                    {
                         error = true;
                     }
                     break;
                 case false:
-                    if(isdigit(value[i]) == 0){
+                    if(isdigit(value[i]) == 0)
+                    {
                         error = true;
                     }
                     break;
             }
 
-            if(error){
+            if(error)
+            {
                 fprintf(stderr, "%s has to be %s\n", arg, alphanum? "alphanumeric":"numeric");
                 break; 
             }
         }
 
-        if(i != size){
+        if(i != size)
+        {
             error = true;
             fprintf(stderr, "%s must have a size of %d\n", arg, size); 
         }
@@ -67,21 +77,25 @@ bool check_arg(const char* arg, const char* value, int size, bool alphanum){
 
 
 //*Execute the registration command
-void reg(const char* buffer){
+void reg(const char* buffer)
+{
     char *uid, *pass;
     char message[20];
 
     //*Get uid and password
-    if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL){
+    if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL)
+    {
         arguments_error();
         return;   
     }
 
     //*Check uid and pass format
-    if(check_arg("uid", uid, 5, false)){
+    if(check_arg("uid", uid, 5, false))
+    {
         return;
     }
-    if(check_arg("password", pass, 8, true)){
+    if(check_arg("password", pass, 8, true))
+    {
         return;
     }
 
@@ -96,16 +110,19 @@ void unr(const char* buffer){
     char message[20];
 
     //*Get uid and password
-    if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL){
+    if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL)
+    {
         arguments_error();
         return;   
     }
 
     //*Check uid and pass format
-    if(check_arg("uid", uid, 5, false)){
+    if(check_arg("uid", uid, 5, false))
+    {
         return;
     }
-    if(check_arg("password", pass, 8, true)){
+    if(check_arg("password", pass, 8, true))
+    {
         return;
     }
 
@@ -114,190 +131,222 @@ void unr(const char* buffer){
     udp_send(DSIP, DSport, message, sizeof(message)-1);
 }
 
-
-void login(const char* buffer){
+ 
+void login(const char* buffer)
+{
     char *uid, *pass;
     char message[20];
 
     //*Get uid and password
-    if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL){
+    if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL)
+    {
         arguments_error();
         return;   
     }
 
     //*Check uid and pass format
-    if(check_arg("uid", uid, 5, false)){
+    if(check_arg("uid", uid, 5, false))
+    {
         return;
     }
-    if(check_arg("password", pass, 8, true)){
+    if(check_arg("password", pass, 8, true))
+    {
         return;
     }
 
     snprintf(message, 20, "LOG %s %s\n", uid, pass);
 
-    udp_send(DSIP, DSport, message, sizeof(message)-1);
-
-    //! DELETE, TEST ONLY
-    sprintf(user.uid,"%s",uid);
-    sprintf(user.pass,"%s",pass);
-    user.logged = 1;
-    /*
-    if(){
-        strcpy(user.uid, uid);
-        strcpy(user.pass, pass);
-        user.loogged = 1;
+    if(udp_send(DSIP, DSport, message, sizeof(message)-1) == OK)
+    {
+        sprintf(user.uid,"%s",uid);
+        sprintf(user.pass,"%s",pass);
+        user.logged = 1;
     }
-    */
 }
 
 
-void logout(){
+void logout()
+{
     char message[20];
     
     snprintf(message, 20, "OUT %s %s\n", user.uid, user.pass);
-    udp_send(DSIP, DSport, message, sizeof(message)-1);
-    //! DELETE, TEST ONLY
-    user.logged = 0;
-
-    /*
-    if(){
-        user = 0;
+    if(udp_send(DSIP, DSport, message, sizeof(message)-1) == OK)
+    {
+        user.logged = 0;
     }
-    */
 }
 
 
-void ex(){
-
-}
-
-
-void groups(const char* buffer){
+void ex()
+{
 
 }
 
 
-void subscribe(const char* buffer){
+void groups(const char* buffer)
+{
+    char message[5];
+
+    snprintf(message, 5, "GLS\n");
+
+    udp_send(DSIP, DSport, message, sizeof(message)-1);
+}
+
+
+void subscribe(const char* buffer)
+{
 
 }
 
 
-void unsubscribe(const char* buffer){
+void unsubscribe(const char* buffer)
+{
 
 }
 
 
-void mgl(const char* buffer){
+void mgl(const char* buffer)
+{
 
 }
 
 
-void sag(const char* buffer){
+void sag(const char* buffer)
+{
 
 }
 
 
-void ulist(const char* buffer){
+void ulist(const char* buffer)
+{
 
 }
 
 
-void post(const char* buffer){
+void post(const char* buffer)
+{
 
 }
 
 
-void retrieve(const char* buffer){
+void retrieve(const char* buffer)
+{
 
 }
 
 
-int main(int argc, char *argv[]){
+int main(int argc, char *argv[])
+{
     char buffer[128];
     char *cmd;
 
+    //TODO read flags
 
-    if(gethostname(buffer, 128) == -1){
+    if(gethostname(buffer, 128) == -1)
+    {
         fprintf(stderr, "Error getting host name\n");
     }
 
+    //FIXME hardcoded for testing
     strcpy(DSIP,"tejo.tecnico.ulisboa.pt");
     strcpy(DSport,"58011");
 
-    while(true){
+    while(true)
+    {
         fgets(buffer, sizeof(buffer), stdin);
         buffer[strlen(buffer)-1] = 0;
 
-      
-        if((cmd = strtok(buffer, " ")) == NULL){
+        if((cmd = strtok(buffer, " ")) == NULL)
+        {
             continue;
         }
         
         //*Register user
-        if(strcmp(cmd, "reg") == 0){      
+        if(strcmp(cmd, "reg") == 0)
+        {      
             reg(buffer);
         
+        
+        }
         //*Unregister user
-        }else if(strcmp(cmd, "unr") == 0 || strcmp(cmd, "unregister") == 0){
+        else if(strcmp(cmd, "unr") == 0 || strcmp(cmd, "unregister") == 0)
+        {
             unr(buffer);
             
+        
+        }
         //*Login
-        }else if(strcmp(cmd, "login") == 0){
+        else if(strcmp(cmd, "login") == 0)
+        {
             login(buffer);
         
+        
+        }
         //*Logout
-        }else if(strcmp(cmd, "logout") == 0){
+        else if(strcmp(cmd, "logout") == 0)
+        {
             logout();
         
+        }
         //*Exit application
-        }else if(strcmp(cmd, "exit") == 0){
+        else if(strcmp(cmd, "exit") == 0)
+        {
             exit(0);
             ex();
         
+        }
         //*Show all groups
-        }else if(strcmp(cmd, "gl") == 0 || strcmp(cmd, "groups") == 0){
+        else if(strcmp(cmd, "gl") == 0 || strcmp(cmd, "groups") == 0)
+        {
             groups(buffer);
         
+        }
         //*Enter/Create a group
-        }else if(strcmp(cmd, "s") == 0 || strcmp(cmd, "subscribe") == 0){
+        else if(strcmp(cmd, "s") == 0 || strcmp(cmd, "subscribe") == 0)
+        {
             subscribe(buffer);
         
+        }
         //*Leave a group
-        }else if(strcmp(cmd, "u") == 0 || strcmp(cmd, "unsubscribe") == 0){
+        else if(strcmp(cmd, "u") == 0 || strcmp(cmd, "unsubscribe") == 0)
+        {
             unsubscribe(buffer);
         
+        }
         //*Show all the groups that the user is in
-        }else if(strcmp(cmd, "mgl") == 0 || strcmp(cmd, "my_groups") == 0){
+        else if(strcmp(cmd, "mgl") == 0 || strcmp(cmd, "my_groups") == 0)
+        {
             mgl(buffer);
         
+        }
         //*Select a group
-        }else if(strcmp(cmd, "sag") == 0 || strcmp(cmd, "select") == 0){
+        else if(strcmp(cmd, "sag") == 0 || strcmp(cmd, "select") == 0)
+        {
             sag(buffer);
         
+        }
         //*Show all user of the selected group
-        }else if(strcmp(cmd, "ul") == 0 || strcmp(cmd, "ulist") == 0){
+        else if(strcmp(cmd, "ul") == 0 || strcmp(cmd, "ulist") == 0)
+        {
             ulist(buffer);
         
+        }
         //*Send a messge to group    
-        }else if(strcmp(cmd, "post") == 0){
+        else if(strcmp(cmd, "post") == 0)
+        {
             post(buffer);
         
+        }
         //*Retrieve messages from group
-        }else if(strcmp(cmd, "r") == 0 || strcmp(cmd, "retrieve") == 0){
+        else if(strcmp(cmd, "r") == 0 || strcmp(cmd, "retrieve") == 0)
+        {
             retrieve(buffer);
 
-        }else{
+        }
+        else
+        {
             fprintf(stderr, "Command \"%s\" doesn't exist.\n", cmd);
         }
-
-
-      /*   while(cmd != NULL){
-            
-           
-        printf("%s\n", cmd);
-
-        cmd = strtok(NULL, " ");
-        } */
     }
 
     /* switch(argc){
