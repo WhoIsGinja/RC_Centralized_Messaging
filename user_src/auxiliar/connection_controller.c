@@ -22,6 +22,9 @@ int parse_status(const char* status)
   {
     return NOK;
   }
+  else{
+    return -1;
+  }
 }
 
 
@@ -73,8 +76,7 @@ int receive_message_udp()
 
   n = recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr*) &addr, &addrlen);
 
-  //*minimum size acceptable for a response, e.g. RGL 0\n
-  if(n < 6)
+  if(n == -1)
   {
     fprintf(stderr, "Error receiving from server\n");
     return NOK;
