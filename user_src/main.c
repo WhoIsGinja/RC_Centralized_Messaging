@@ -177,9 +177,15 @@ void logout()
 }
 
 
+void showuid()
+{
+    printf("Current user ID: %s", user.uid);
+}
+
+
 void ex()
 {
-
+    //TODO Close all TCP connections, maybe uselless
 }
 
 
@@ -212,6 +218,12 @@ void mgl(const char* buffer)
 
 
 void sag(const char* buffer)
+{
+
+}
+
+
+void showgid()
 {
 
 }
@@ -265,65 +277,62 @@ int main(int argc, char *argv[])
         if(strcmp(cmd, "reg") == 0)
         {      
             reg(buffer);
-        
-        
         }
         //*Unregister user
         else if(strcmp(cmd, "unr") == 0 || strcmp(cmd, "unregister") == 0)
         {
             unr(buffer);
-            
-        
         }
         //*Login
         else if(strcmp(cmd, "login") == 0)
         {
             login(buffer);
-        
-        
         }
         //*Logout
         else if(strcmp(cmd, "logout") == 0)
         {
             logout();
-        
+        }
+        //*Show user id
+        else if(strcmp(cmd, "su") == 0 ||strcmp(cmd, "showuid") == 0)
+        {
+            showuid();
         }
         //*Exit application
         else if(strcmp(cmd, "exit") == 0)
         {
             exit(0);
             ex();
-        
         }
         //*Show all groups
         else if(strcmp(cmd, "gl") == 0 || strcmp(cmd, "groups") == 0)
         {
             groups(buffer);
-        
         }
         //*Enter/Create a group
         else if(strcmp(cmd, "s") == 0 || strcmp(cmd, "subscribe") == 0)
         {
             subscribe(buffer);
-        
         }
         //*Leave a group
         else if(strcmp(cmd, "u") == 0 || strcmp(cmd, "unsubscribe") == 0)
         {
             unsubscribe(buffer);
-        
         }
         //*Show all the groups that the user is in
         else if(strcmp(cmd, "mgl") == 0 || strcmp(cmd, "my_groups") == 0)
         {
             mgl(buffer);
-        
         }
         //*Select a group
         else if(strcmp(cmd, "sag") == 0 || strcmp(cmd, "select") == 0)
         {
             sag(buffer);
-        
+        }
+        //*Show current group id
+        else if(strcmp(cmd, "sg") == 0 || strcmp(cmd, "showgid") == 0)
+        {
+            showgid(buffer);
         }
         //*Show all user of the selected group
         else if(strcmp(cmd, "ul") == 0 || strcmp(cmd, "ulist") == 0)
@@ -335,13 +344,11 @@ int main(int argc, char *argv[])
         else if(strcmp(cmd, "post") == 0)
         {
             post(buffer);
-        
         }
         //*Retrieve messages from group
         else if(strcmp(cmd, "r") == 0 || strcmp(cmd, "retrieve") == 0)
         {
             retrieve(buffer);
-
         }
         else
         {

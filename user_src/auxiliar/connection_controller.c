@@ -14,6 +14,7 @@ int fd;
 
 int parse_status(const char* status)
 {
+  //TODO rest of the status
   if(strncmp(status,"OK", 2))
   {
     return OK;
@@ -65,6 +66,7 @@ int send_message_udp(const char *ds_ip, const char* ds_port, const char *message
   return OK;
 }
 
+
 int receive_message_udp()
 {
   socklen_t addrlen;
@@ -97,6 +99,7 @@ int receive_message_udp()
 
   return OK;
 }
+
 
 int udp_send(const char *ds_ip, const char* ds_port, const char *message, int size)
 {  
