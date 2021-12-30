@@ -133,7 +133,12 @@ void unr(const char* buffer){
 
  
 void login(const char* buffer)
-{
+{   
+    if(user.logged == 1)
+    {
+        fprintf(stderr, "An user is already logged in!\n");
+        return;
+    }
     char *uid, *pass;
     char message[20];
 
@@ -156,6 +161,8 @@ void login(const char* buffer)
 
     snprintf(message, 20, "LOG %s %s\n", uid, pass);
 
+    
+
     if(udp_send(DSIP, DSport, message, sizeof(message)-1) == OK)
     {
         sprintf(user.uid,"%s",uid);
@@ -167,8 +174,14 @@ void login(const char* buffer)
 
 void logout()
 {
+    if(user.logged == 0)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
+
     char message[20];
-    
+
     snprintf(message, 20, "OUT %s %s\n", user.uid, user.pass);
     if(udp_send(DSIP, DSport, message, sizeof(message)-1) == OK)
     {

@@ -14,12 +14,12 @@ int fd;
 
 int parse_status(const char* status)
 {
-  //TODO rest of the status
-  if(strncmp(status,"OK", 2))
+  
+  if(strncmp(status,"OK", 2) == 0)
   {
     return OK;
   }
-  else if(strncmp(status,"NOK", 3))
+  else if(strncmp(status,"NOK", 3) == 0)
   {
     return NOK;
   }
@@ -94,7 +94,7 @@ int receive_message_udp()
   else
   {
     write(1, buffer, n);
-    return parse_status(buffer+4);
+    return parse_status(buffer + 4);
   }
 
   return OK;
