@@ -144,6 +144,12 @@ void login(const char* buffer)
         return;   
     }
 
+    //*Check if there is already a log in
+    if(user.logged == 1)
+    {
+        return;
+    }
+
     //*Check uid and pass format
     if(check_arg("uid", uid, 5, false))
     {
