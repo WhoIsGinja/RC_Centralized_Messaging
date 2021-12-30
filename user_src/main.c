@@ -134,6 +134,7 @@ void unr(const char* buffer){
  
 void login(const char* buffer)
 {   
+    //*Check if there is already a log in
     if(user.logged == 1)
     {
         fprintf(stderr, "An user is already logged in!\n");
@@ -147,12 +148,6 @@ void login(const char* buffer)
     {
         arguments_error();
         return;   
-    }
-
-    //*Check if there is already a log in
-    if(user.logged == 1)
-    {
-        return;
     }
 
     //*Check uid and pass format
