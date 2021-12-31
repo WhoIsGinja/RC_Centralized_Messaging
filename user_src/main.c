@@ -215,7 +215,28 @@ void groups(const char* buffer)
 
 void subscribe(const char* buffer)
 {
+    char message[38];
+    char *GID, *GName;
 
+
+    if((GID = strtok(NULL, " ")) == NULL || (GName = strtok(NULL, " ")) == NULL)
+    {
+        arguments_error();
+        return;   
+    }
+    if(strlen(GID) != 2 || strlen(GName) > 24)
+    {
+        arguments_error();
+        return;
+    }
+
+    printf("%s %s\n", GID, GName);
+
+    snprintf(message, 38, "GSR %s %s %s\n", user.uid, GID, GName);
+
+    printf("%s", message);
+
+    udp_send(DSIP, DSport, message, sizeof(message)-1);
 }
 
 
