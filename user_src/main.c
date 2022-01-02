@@ -230,19 +230,35 @@ void subscribe(const char* buffer)
         return;
     }
 
-    printf("%s %s\n", GID, GName);
-
     snprintf(message, 38, "GSR %s %s %s\n", user.uid, GID, GName);
 
     printf("%s", message);
 
-    udp_send(DSIP, DSport, message, sizeof(message)-1);
+    udp_send(DSIP, DSport, message, strlen(message));
 }
 
 
 void unsubscribe(const char* buffer)
 {
+    char message[16];
+    char *GID;
 
+    if((GID = strtok(NULL, " ")) == NULL)
+    {
+        arguments_error();
+        return;   
+    }
+    if(strlen(GID) != 2)
+    {
+        arguments_error();
+        return;
+    }
+
+    snprintf(message, 16, "GUR %s %s\n", user.uid, GID);
+
+    printf("%s", message);
+
+    udp_send(DSIP, DSport, message, strlen(message));
 }
 
 
