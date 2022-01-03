@@ -12,6 +12,7 @@ struct user_info
     char uid[6];
     char pass[9];
     int logged;
+    char *gidACT;
 };
 
 struct user_info user;
@@ -264,13 +265,33 @@ void unsubscribe(const char* buffer)
 
 void mgl(const char* buffer)
 {
+    char message[11];
 
+    snprintf(message, 11, "GLM %s\n", user.uid);
+
+    udp_send(DSIP,DSport, message, strlen(message));
 }
 
 
 void sag(const char* buffer)
 {
+    char *GID;
 
+    if((GID = strtok(NULL, " ")) == NULL)
+    {
+        arguments_error();
+        return;   
+    }
+    if(strlen(GID) != 2)
+    {
+        arguments_error();
+        return;
+    }
+
+    user.gidACT = GID;
+
+    printf("%s\n", user.gidACT);
+    
 }
 
 
