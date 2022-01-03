@@ -9,10 +9,10 @@
 
 struct user_info
 {
+    int logged;
     char uid[6];
     char pass[9];
-    int logged;
-    char *gidACT;
+    char gid[3];
 };
 
 struct user_info user;
@@ -135,14 +135,15 @@ void unr(const char* buffer){
  
 void login(const char* buffer)
 {   
+    char *uid, *pass;
+    char message[20];
+
     //*Check if there is already a log in
     if(user.logged == 1)
     {
         fprintf(stderr, "An user is already logged in!\n");
         return;
     }
-    char *uid, *pass;
-    char message[20];
 
     //*Get uid and password
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL)
@@ -176,13 +177,13 @@ void login(const char* buffer)
 
 void logout()
 {
+    char message[20];
+
     if(user.logged == 0)
     {
         fprintf(stderr, "No user logged in!\n");
         return;
     }
-
-    char message[20];
 
     snprintf(message, 20, "OUT %s %s\n", user.uid, user.pass);
     if(udp_send(DSIP, DSport, message, sizeof(message)-1) == OK)
@@ -219,14 +220,21 @@ void subscribe(const char* buffer)
     char message[38];
     char *GID, *GName;
 
+    if(user.logged == 0)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
 
     if((GID = strtok(NULL, " ")) == NULL || (GName = strtok(NULL, " ")) == NULL)
     {
         arguments_error();
         return;   
     }
+    
     if(strlen(GID) != 2 || strlen(GName) > 24)
-    {
+    {   
+        //FIXME informational message
         arguments_error();
         return;
     }
@@ -244,13 +252,21 @@ void unsubscribe(const char* buffer)
     char message[16];
     char *GID;
 
+    if(user.logged == 0)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
+
     if((GID = strtok(NULL, " ")) == NULL)
     {
         arguments_error();
         return;   
     }
+
     if(strlen(GID) != 2)
     {
+        //FIXME informational message
         arguments_error();
         return;
     }
@@ -263,7 +279,7 @@ void unsubscribe(const char* buffer)
 }
 
 
-void mgl(const char* buffer)
+void my_groups(const char* buffer)
 {
     char message[11];
 
@@ -277,27 +293,35 @@ void sag(const char* buffer)
 {
     char *GID;
 
+    if(user.logged == 0)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
+
     if((GID = strtok(NULL, " ")) == NULL)
     {
         arguments_error();
         return;   
     }
+
     if(strlen(GID) != 2)
     {
+        //FIXME informational message
         arguments_error();
         return;
     }
 
-    user.gidACT = GID;
+    snprintf(user.gid, 3, "%s", GID);
 
-    printf("%s\n", user.gidACT);
+    printf("%s\n", user.gid);
     
 }
 
 
 void showgid()
 {
-
+    
 }
 
 
@@ -394,7 +418,7 @@ int main(int argc, char *argv[])
         //*Show all the groups that the user is in
         else if(strcmp(cmd, "mgl") == 0 || strcmp(cmd, "my_groups") == 0)
         {
-            mgl(buffer);
+            my_groups(buffer);
         }
         //*Select a group
         else if(strcmp(cmd, "sag") == 0 || strcmp(cmd, "select") == 0)

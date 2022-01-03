@@ -23,6 +23,10 @@ void udp_commands(const char* cmd)
 
 void udp_connections(const char* port)
 {
+    while(true)
+    {
+
+    }
     //TODO
 }
 
@@ -35,7 +39,7 @@ void tcp_commands(const char* cmd){
 
 
 void tcp_connections(const char* port)
-{
+{   
     int fd, connfd, errcode;
     ssize_t n;
     struct addrinfo hints, *res;
