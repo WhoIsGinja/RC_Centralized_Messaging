@@ -23,12 +23,70 @@ void udp_commands(const char* cmd)
 
 void udp_connections(const char* port)
 {
+    int fd, connfd, errcode;
+    ssize_t n;
+    struct addrinfo hints, *res;
+    struct sockaddr_in addr;
+    char buffer[BUFFER];
+    socklen_t addrlen = sizeof(addr);
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    if(fd == -1)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(errno));
+        return;
+    }
+    
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE;
+
+    if((errcode = getaddrinfo(NULL, port, &hints, &res)) != 0)
+    {
+        fprintf(stderr, "Error: %s\n", gai_strerror(errcode));
+        close(fd);
+        return;
+    }
+
+    if((n = bind(fd, res->ai_addr, res->ai_addrlen)) == -1)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(errno));
+        freeaddrinfo(res);
+        close(fd);
+        return;
+    }
+
     while(true)
     {
+        n = recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr*) &addr, &addrlen);
+        if(n == -1)
+        {
+            fprintf(stderr, "Error receiving from client\n");
+            freeaddrinfo(res);
+            close(fd);
+            return;
+        }
 
+        if(fork() == 0)
+        {
+            //!FIXME testing only
+            write(1, "Received: ", 10);
+            write(1, buffer, n);
+            snprintf(buffer, 17, "Server Response\n");
+
+            udp_commands(buffer);
+
+            //!FIXME message size
+            n = sendto(fd, buffer, 16, 0, (struct sockaddr*) &addr, addrlen);
+
+
+            exit(0);
+        }
     }
     //TODO
 }
+
 
 
 //*TCP
@@ -109,6 +167,7 @@ void tcp_connections(const char* port)
             //TODO
             tcp_commands(buffer);
 
+            //!FIXME message size
             if(n = write(connfd, buffer, 16) == -1)
             {
                 fprintf(stderr, "Error(receiving): %s\n", strerror(errno));
