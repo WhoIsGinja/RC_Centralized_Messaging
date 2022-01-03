@@ -120,37 +120,48 @@ int udp_send(const char *ds_ip, const char* ds_port, const char *message, int si
 
 //*TCP transmissions 
 
-//TODO replicate similar UDP functions for TCP operations
-int tcp_send(const char* ds_ip, const char* ds_port, const char* message, int size) {
-   /*  int fd,errcode;
-    ssize_t n;
-    struct addrinfo hints,*res;
-    char buffer[128];
+/*WIP*/
+int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message, int size)
+{
+  struct addrinfo hints, *res;
+  int fd, n;
 
-    fd = socket(AF_INET,SOCK_STREAM,0);
-    if(fd == -1) exit(1);
+  fd = socket(AF_INET, SOCK_STREAM, 0);
+  if(fd == -1)
+  {
+    fprintf(stderr, "Error creating socket\n");
+    return NOK;
+  }
 
-    memset(&hints, 0, sizeof hints);
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
 
-    errcode = getaddrinfo(ds_ip, ds_port,&hints,&res);
-    if(errcode != 0) exit(1);
+  n = getaddrinfo(ds_ip, ds_port, &hints, &res);
+  if(n != 0)
+  {
+    fprintf(stderr, "Error getting the server\n");
+    return NOK;
+  }
 
-    n = connect(fd, res->ai_addr,res->ai_addrlen);
-    if(n == -1) exit(1);
-
-    n = write(fd, message, sizeof(message));
-    if(n == -1) exit(1);
-
-    n = read(fd, buffer, 128);
-    if(n == -1) exit(1);
-
-    printf("Receive from server: %s", buffer);
-
-    freeaddrinfo(res);
-    close(fd); */
-    //return buffer;
+  n = connect(fd, res->ai_addr, res->ai_addrlen);
+  if(n == -1)
+  {
+    return NOK;
+  }
 
   return OK;
+
+}
+
+int receive_message_tcp()
+{
+
+}
+
+//TODO replicate similar UDP functions for TCP operations
+int tcp_send(const char* ds_ip, const char* ds_port, const char* message, int size) {
+  return OK;
+
+
 }
