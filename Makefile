@@ -3,13 +3,13 @@ LD   = gcc
 CFLAGS =-Wall -std=gnu99 -I../
 
 #User compilation
-user: user_src/auxiliar/connection_controller.o user_src/main.o
-	$(LD) $(CFLAGS) -o user user_src/auxiliar/connection_controller.o user_src/main.o
+user: user_src/auxiliar/connection_manager.o user_src/main.o
+	$(LD) $(CFLAGS) -o user user_src/auxiliar/connection_manager.o user_src/main.o
 
-user_src/auxiliar/connection_controller.o: user_src/auxiliar/connection_controller.c user_src/auxiliar/connection_controller.h protocol_constants.h
-	$(LD) $(CFLAGS) -o user_src/auxiliar/connection_controller.o -c user_src/auxiliar/connection_controller.c
+user_src/auxiliar/connection_manager.o: user_src/auxiliar/connection_manager.c user_src/auxiliar/connection_manager.h protocol_constants.h
+	$(LD) $(CFLAGS) -o user_src/auxiliar/connection_manager.o -c user_src/auxiliar/connection_manager.c
 
-user_src/main.o: user_src/auxiliar/connection_controller.h protocol_constants.h user_src/main.c
+user_src/main.o: user_src/auxiliar/connection_manager.h protocol_constants.h user_src/main.c
 	$(LD) $(CFLAGS) -o user_src/main.o -c user_src/main.c
 
 #TODO Server compilation

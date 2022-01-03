@@ -7,7 +7,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
-#include "connection_controller.h"
+#include "connection_manager.h"
 #include "../../protocol_constants.h"
 
 int fd;
@@ -33,12 +33,12 @@ int parse_status(const char* status)
 
 int send_message_udp(const char *ds_ip, const char* ds_port, const char *message, int size)
 {
-  int errcode;
   ssize_t n;
   struct addrinfo hints, *res;
 
   fd = socket(AF_INET, SOCK_DGRAM, 0);
-  if(fd == -1){
+  if(fd == -1)
+  {
     fprintf(stderr, "Error creating socket\n");
     return NOK;
   }
@@ -47,16 +47,16 @@ int send_message_udp(const char *ds_ip, const char* ds_port, const char *message
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_DGRAM;
 
-  errcode = getaddrinfo(ds_ip, ds_port, &hints, &res);
-
-  if(errcode != 0){
+  if(getaddrinfo(ds_ip, ds_port, &hints, &res) != 0)
+  {
     fprintf(stderr, "Error getting server\n");
     freeaddrinfo(res);
     return NOK;
   }
 
   n = sendto(fd, message, size, 0, res->ai_addr, res->ai_addrlen);
-  if(n == -1){
+  if(n == -1)
+  {
     fprintf(stderr, "Error sending to server\n");
     freeaddrinfo(res);
     return NOK;
@@ -71,7 +71,7 @@ int receive_message_udp()
 {
   socklen_t addrlen;
   struct sockaddr_in addr;
-  char buffer[128];
+  char buffer[BUFFER];
 
   addrlen = sizeof(addr);
   ssize_t n;

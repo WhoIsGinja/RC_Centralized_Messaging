@@ -4,4 +4,6 @@
 //TODO missing status
 enum status{OK, NOK};
 
+#define BUFFER 1024
+
 #endif

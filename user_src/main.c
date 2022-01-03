@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
-#include "auxiliar/connection_controller.h"
+#include "auxiliar/connection_manager.h"
 #include "../protocol_constants.h"
 
 struct user_info
@@ -300,12 +300,12 @@ void retrieve(const char* buffer)
 
 int main(int argc, char *argv[])
 {
-    char buffer[128];
+    char buffer[BUFFER];
     char *cmd;
 
     //TODO read flags
 
-    if(gethostname(buffer, 128) == -1)
+    if(gethostname(buffer, sizeof(buffer)) == -1)
     {
         fprintf(stderr, "Error getting host name\n");
     }
