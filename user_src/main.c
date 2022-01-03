@@ -9,7 +9,7 @@
 
 struct user_info
 {
-    int logged;
+    bool logged;
     char uid[6];
     char pass[9];
     char gid[3];
@@ -139,7 +139,7 @@ void login(const char* buffer)
     char message[20];
 
     //*Check if there is already a log in
-    if(user.logged == 1)
+    if(user.logged == true)
     {
         fprintf(stderr, "An user is already logged in!\n");
         return;
@@ -170,7 +170,7 @@ void login(const char* buffer)
     {
         sprintf(user.uid,"%s",uid);
         sprintf(user.pass,"%s",pass);
-        user.logged = 1;
+        user.logged = true;
     }
 }
 
@@ -179,7 +179,7 @@ void logout()
 {
     char message[20];
 
-    if(user.logged == 0)
+    if(user.logged == false)
     {
         fprintf(stderr, "No user logged in!\n");
         return;
@@ -187,21 +187,31 @@ void logout()
 
     snprintf(message, 20, "OUT %s %s\n", user.uid, user.pass);
     if(udp_send(DSIP, DSport, message, sizeof(message)-1) == OK)
-    {
-        user.logged = 0;
+    {   
+        //*Localy clean user info
+        user.logged = false;
+        memset(user.uid, 0, 6);
+        memset(user.pass, 0, 9);
+        memset(user.gid, 0, 3);
     }
 }
 
 
 void showuid()
 {
+    if(user.logged == false)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
+
     printf("Current user ID: %s", user.uid);
 }
 
 
 void ex()
 {
-    //TODO Close all TCP connections, maybe uselless
+    //TODO Close all TCP connections, maybe useless
 }
 
 
@@ -220,7 +230,7 @@ void subscribe(const char* buffer)
     char message[38];
     char *GID, *GName;
 
-    if(user.logged == 0)
+    if(user.logged == false)
     {
         fprintf(stderr, "No user logged in!\n");
         return;
@@ -252,7 +262,7 @@ void unsubscribe(const char* buffer)
     char message[16];
     char *GID;
 
-    if(user.logged == 0)
+    if(user.logged == false)
     {
         fprintf(stderr, "No user logged in!\n");
         return;
@@ -293,7 +303,7 @@ void sag(const char* buffer)
 {
     char *GID;
 
-    if(user.logged == 0)
+    if(user.logged == false)
     {
         fprintf(stderr, "No user logged in!\n");
         return;
@@ -347,6 +357,12 @@ int main(int argc, char *argv[])
 {
     char buffer[BUFFER];
     char *cmd;
+
+    //*Initialize local user
+    user.logged = false;
+    memset(user.uid, 0, 6);
+    memset(user.pass, 0, 9);
+    memset(user.gid, 0, 3);
 
     //TODO read flags
 
