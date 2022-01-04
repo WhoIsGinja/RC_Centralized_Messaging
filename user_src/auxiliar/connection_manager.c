@@ -126,7 +126,6 @@ int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message
 {
   struct addrinfo hints, *res;
   int n, errcode;
-  ssize_t nleft, nwritten;
 
   fd = socket(AF_INET, SOCK_STREAM, 0);
   if(fd == -1)
