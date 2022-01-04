@@ -156,7 +156,7 @@ int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message
 
 int receive_message_tcp()
 {
-
+  return 0;
 }
 
 //TODO replicate similar UDP functions for TCP operations

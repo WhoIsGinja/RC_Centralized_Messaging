@@ -4,10 +4,11 @@
 //TODO more api calls
 int init_fs();
 
-int create_file();
-int delete_file();
-int write_file();
+int create_dir(const char* dir);
+int delete_dir(const char* dir);
 
-int create_dir();
+int write_file(const char* file, const char* content);
+int delete_file(const char* file);
+
 
 #endif

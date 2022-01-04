@@ -12,12 +12,33 @@
 #include <signal.h>
 #include <errno.h>
 #include "../protocol_constants.h"
+#include "auxiliar/file_manager.h"
+
 
 //*UDP
 
-void udp_commands(const char* cmd)
+void udp_commands(char* buffer)
 {
-    printf("Exec command...\n");
+    char* cmd;
+
+    if((cmd = strtok(buffer, " ")) == NULL)
+    {   
+        snprintf(buffer,  5, "ERR\n");
+        return;
+    }
+
+    if(strncmp(cmd, "REG", 3) == 0)
+    {      
+        //reg(buffer);
+    }
+    else if(strncmp(cmd, "GLS", 3) == 0)
+    {
+        fprintf(stderr,"GLS works\n");
+    }
+    else
+    {
+        fprintf(stderr,"shit: %s\n", cmd);
+    }
 }
 
 
@@ -69,17 +90,16 @@ void udp_connections(const char* port)
         }
 
         if(fork() == 0)
-        {
+        {   
             //!FIXME testing only
-            write(1, "Received: ", 10);
+            /* write(1, "Received: ", 10);
             write(1, buffer, n);
-            snprintf(buffer, 17, "Server Response\n");
+            snprintf(buffer, 17, "Server Response\n"); */
 
             udp_commands(buffer);
 
             //!FIXME message size
             n = sendto(fd, buffer, 16, 0, (struct sockaddr*) &addr, addrlen);
-
 
             exit(0);
         }
@@ -165,7 +185,7 @@ void tcp_connections(const char* port)
             snprintf(buffer, 17, "Server Response\n");
 
             //TODO
-            tcp_commands(buffer);
+            tcp_commands(buffer/*, connfd*/);
 
             //!FIXME message size
             if(n = write(connfd, buffer, 16) == -1)
@@ -192,6 +212,8 @@ int main(int argc, char *argv[])
     char port[6] = "58005\0";
     
     //TODO read args
+
+    //init_fs();
 
     child_pid = fork();
 
