@@ -72,24 +72,43 @@ int receive_message_udp()
   socklen_t addrlen;
   struct sockaddr_in addr;
   char buffer[BUFFER];
-
+  char buf[3];
+  char *token;
+  int j,i, count;
   addrlen = sizeof(addr);
   ssize_t n;
 
   n = recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr*) &addr, &addrlen);
-
   if(n == -1)
   {
     fprintf(stderr, "Error receiving from server\n");
     return NOK;
   }
-
   //FIXME this is an optimistc approach, i.e. the server respects protocol
   //TODO verify everything
   if(strncmp(buffer, "RGL", 3) == 0 || strncmp(buffer, "RGM", 3) == 0)
   { 
-    //TODO parse and fully read groups or my_groups (similar response)
-    printf("display groups or my_groups response\n");
+    snprintf(buf, 3, "%s\n", buffer + 4);
+    j = atoi(buf);
+    token = strtok(buffer + 6, " ");
+    for (i = 1; i < j; i++){
+      count = 2;
+      while (count > 0){
+        printf("%s ", token);
+        token = strtok(NULL, " ");
+        count--;
+      }
+      token = strtok(NULL, " ");
+      printf("\n");
+    }
+    count = 2;
+    while (count > 0){
+      printf("%s ", token);
+      token = strtok(NULL, " ");
+      count--;
+    }
+    printf("\n");
+    //printf("display groups or my_groups response\n");
   }
   else
   {

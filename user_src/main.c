@@ -444,7 +444,7 @@ int main(int argc, char *argv[])
         //*Show current group id
         else if(strcmp(cmd, "sg") == 0 || strcmp(cmd, "showgid") == 0)
         {
-            showgid(buffer);
+            showgid();
         }
         //*Show all user of the selected group
         else if(strcmp(cmd, "ul") == 0 || strcmp(cmd, "ulist") == 0)
