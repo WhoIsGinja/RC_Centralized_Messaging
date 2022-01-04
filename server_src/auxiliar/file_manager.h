@@ -1,14 +1,16 @@
 #ifndef FILE_MANAGER_H
 #define FILE_MANAGER_H
 
+#include <stdbool.h>
+
 //TODO more api calls
-void init_fs();
+void init_server_data();
 
-int create_dir(const char* dir);
-int delete_dir(const char* dir);
+//* User Management
+int user_create(const char* uid, const char* pass);
+int user_delete(const char* uid);
+int user_entry(const char* uid, const char* pass, bool login);
 
-int write_file(const char* file, const char* content);
-int delete_file(const char* file);
-
+//*Groups Management
 
 #endif

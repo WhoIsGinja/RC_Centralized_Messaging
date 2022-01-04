@@ -219,7 +219,7 @@ void groups(const char* buffer)
 {
     char message[5];
 
-    snprintf(message, 5, "GLS\n");
+    sprintf(message, "GLS\n");
 
     udp_send(DSIP, DSport, message, sizeof(message)-1);
 }
@@ -293,6 +293,12 @@ void my_groups(const char* buffer)
 {
     char message[11];
 
+    if(user.logged == false)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
+
     snprintf(message, 11, "GLM %s\n", user.uid);
 
     udp_send(DSIP,DSport, message, strlen(message));
@@ -331,13 +337,34 @@ void sag(const char* buffer)
 
 void showgid()
 {
-    
+    if(user.logged == false)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
+
+    printf("Selected group ID: %s", user.gid);
 }
 
 
-void ulist(const char* buffer)
+void ulist()
 {
+    char message[8];
 
+    if(user.logged == false)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
+    else if(strncmp(user.gid, "\0",1) == 0)
+    {
+        fprintf(stderr, "No group selected\n");
+    }
+
+    snprintf(message, 8, "ULS %s\n", user.gid);
+
+    tcp_send(DSIP,DSport,message, strlen(message));
+    
 }
 
 

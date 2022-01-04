@@ -2,7 +2,7 @@
 #define PROTOCOL_CONSTANTS_H
 
 //TODO missing status
-enum status{OK, NOK};
+enum status{OK, NOK, DUP};
 
 #define BUFFER 4096
 

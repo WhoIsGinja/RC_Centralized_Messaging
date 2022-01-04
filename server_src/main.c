@@ -15,9 +15,79 @@
 #include "auxiliar/file_manager.h"
 
 
-//*UDP
+/*
+*Check the argument format
+*arg: argument name
+*value: argument value
+*size: string size desired (0 to not check)
+*alphanum: true to check alphanumeric char, false to only check numeric
+*/
+bool check_arg(const char* arg, const char* value, int size, bool alphanum)
+{
+    int i;
+    bool error = false;
+  
+    //*size check
+    if(size != 0)
+    {
+        for(i = 0; value[i]!= '\0' ; i++)
+        {
+            switch (alphanum)
+            {
+                case true:
+                    if(isalnum(value[i]) == 0)
+                    {
+                        error = true;
+                    }
+                    break;
+                case false:
+                    if(isdigit(value[i]) == 0)
+                    {
+                        error = true;
+                    }
+                    break;
+            }
 
-void udp_commands(char* buffer)
+            if(error)
+            {
+                fprintf(stderr, "%s has to be %s\n", arg, alphanum? "alphanumeric":"numeric");
+                break; 
+            }
+        }
+
+        if(i != size)
+        {
+            error = true;
+            fprintf(stderr, "%s must have a size of %d\n", arg, size); 
+        }
+    }
+ 
+    return error;
+}
+
+
+/*
+*  _    _ _____  _____  
+* | |  | |  __ \|  __ \ 
+* | |  | | |  | | |__) |
+* | |  | | |  | |  ___/ 
+* | |__| | |__| | |     
+*  \____/|_____/|_| 
+*/    
+                       
+
+int reg(char* buffer)
+{
+    char *uid, *pass;
+    if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL)
+    {
+        snprintf(buffer,  5, "ERR\n");
+        return;   
+    }
+}
+
+
+void udp_commands(char* buffer, int n)
 {
     char* cmd;
 
@@ -27,18 +97,22 @@ void udp_commands(char* buffer)
         return;
     }
 
-    if(strncmp(cmd, "REG", 3) == 0)
-    {      
+    if(n == 19 && strncmp(cmd, "REG", 3) == 0)
+    {   
+        write(1, buffer, n);
+        
+        
         //reg(buffer);
     }
-    else if(strncmp(cmd, "GLS", 3) == 0)
+    else if(n == 4 && strncmp(cmd, "GLS\n", 4) == 0)
     {
         fprintf(stderr,"GLS works\n");
     }
     else
     {
-        fprintf(stderr,"shit: %s\n", cmd);
+        snprintf(buffer,  5, "ERR\n");
     }
+
 }
 
 
@@ -91,15 +165,10 @@ void udp_connections(const char* port)
 
         if(fork() == 0)
         {   
-            //!FIXME testing only
-            /* write(1, "Received: ", 10);
-            write(1, buffer, n);
-            snprintf(buffer, 17, "Server Response\n"); */
-
-            udp_commands(buffer);
+            udp_commands(buffer, n);
 
             //!FIXME message size
-            n = sendto(fd, buffer, 16, 0, (struct sockaddr*) &addr, addrlen);
+            n = sendto(fd, buffer, n, 0, (struct sockaddr*) &addr, addrlen);
 
             exit(0);
         }
@@ -108,9 +177,14 @@ void udp_connections(const char* port)
 }
 
 
-
-//*TCP
-
+/*
+*  _______ _____ _____  
+* |__   __/ ____|  __ \ 
+*    | | | |    | |__) |
+*    | | | |    |  ___/ 
+*    | | | |____| |     
+*    |_|  \_____|_|                               
+*/                     
 void tcp_commands(const char* cmd){
     printf("Executes command...\n");
 }
@@ -179,12 +253,6 @@ void tcp_connections(const char* port)
                 exit(1);
             }
 
-            //!FIXME testing only
-            write(1, "Received: ", 10);
-            write(1, buffer, n);
-            snprintf(buffer, 17, "Server Response\n");
-
-            //TODO
             tcp_commands(buffer/*, connfd*/);
 
             //!FIXME message size
@@ -213,7 +281,7 @@ int main(int argc, char *argv[])
     
     //TODO read args
 
-    init_fs();
+    init_server_data();
 
     child_pid = fork();
 

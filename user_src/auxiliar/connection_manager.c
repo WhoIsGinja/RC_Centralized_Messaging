@@ -11,6 +11,7 @@
 #include "../../protocol_constants.h"
 
 int fd;
+char buffer[128];
 
 int parse_status(const char* status)
 {
@@ -123,7 +124,7 @@ int receive_message_udp()
 int udp_send(const char *ds_ip, const char* ds_port, const char *message, int size)
 {  
   int status;
-
+  
   if(send_message_udp(ds_ip, ds_port, message, size) == NOK)
   {
     close(fd);
@@ -143,7 +144,7 @@ int udp_send(const char *ds_ip, const char* ds_port, const char *message, int si
 int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message, int size)
 {
   struct addrinfo hints, *res;
-  int fd, n;
+  int n, errcode;
 
   fd = socket(AF_INET, SOCK_STREAM, 0);
   if(fd == -1)
@@ -156,31 +157,63 @@ int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
 
-  n = getaddrinfo(ds_ip, ds_port, &hints, &res);
-  if(n != 0)
+  errcode = getaddrinfo(ds_ip, ds_port, &hints, &res);
+  if(errcode != 0)
   {
     fprintf(stderr, "Error getting the server\n");
+    freeaddrinfo(res);
     return NOK;
   }
 
   n = connect(fd, res->ai_addr, res->ai_addrlen);
   if(n == -1)
   {
+    freeaddrinfo(res);
     return NOK;
   }
+
+  /*SIZE AQUI*/
+  if((n = write(fd,message, size) == -1))
+  {
+    fprintf(stderr, "Error sending to server\n");
+    return NOK;
+  }
+
 
   return OK;
 
 }
 
+
+/*copied, needs adjustments*/
 int receive_message_tcp()
 {
-  return 0;
+  int n;
+  char buffer[128];
+
+  if((n = read(fd, buffer, 128)) == -1) 
+  {
+    fprintf(stderr, "Error receiving from server\n");
+    return NOK;
+  }
+  
+  printf("AYAYAYAYAYAYAYA BENNY LOUCO\n");
+
+  return OK;
 }
 
 //TODO replicate similar UDP functions for TCP operations
 int tcp_send(const char* ds_ip, const char* ds_port, const char* message, int size) {
-  return OK;
+  int status;
 
+  if(send_message_tcp(ds_ip,ds_port,message,size) == NOK)
+  {
+    close(fd);
+    return NOK;
+  }
 
+  status = receive_message_tcp();
+  close(fd);
+
+  return status;
 }
