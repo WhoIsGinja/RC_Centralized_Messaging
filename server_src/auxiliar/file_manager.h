@@ -2,7 +2,7 @@
 #define FILE_MANAGER_H
 
 //TODO more api calls
-int init_fs();
+void init_fs();
 
 int create_dir(const char* dir);
 int delete_dir(const char* dir);

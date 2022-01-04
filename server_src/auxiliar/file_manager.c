@@ -1,20 +1,28 @@
 #include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <string.h>
 #include <dirent.h>
 #include <errno.h>
+#include <stdlib.h>
 #include "file_manager.h"
 #include "../../protocol_constants.h"
 
-int init_fs()
-{
-    if(mkdir("USERS", S_IRWXU) == -1 && errno != EEXIST)
+void init_fs()
+{   
+    if(mkdir("server_data", S_IRWXU) == -1 && errno != EEXIST)
     {
         fprintf(stderr, "Error: %s\n", strerror(errno));
         exit(1);
     }
 
-    if(mkdir("GROUPS", S_IRWXU) == -1 && errno != EEXIST)
+    if(mkdir("server_data/USERS", S_IRWXU) == -1 && errno != EEXIST)
+    {
+        fprintf(stderr, "Error: %s\n", strerror(errno));
+        exit(1);
+    }
+
+    if(mkdir("server_data/GROUPS", S_IRWXU) == -1 && errno != EEXIST)
     {
         fprintf(stderr, "Error: %s\n", strerror(errno));
         exit(1);

@@ -51,4 +51,8 @@ Module.symvers
 Mkfile.old
 dkms.conf
 *.json
+
+#Custom
+server_data/
+server
 user

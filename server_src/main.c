@@ -44,7 +44,7 @@ void udp_commands(char* buffer)
 
 void udp_connections(const char* port)
 {
-    int fd, connfd, errcode;
+    int fd, errcode;
     ssize_t n;
     struct addrinfo hints, *res;
     struct sockaddr_in addr;
@@ -172,7 +172,7 @@ void tcp_connections(const char* port)
 
         if(fork() == 0)
         {
-            if(n = read(connfd, buffer, sizeof(buffer)) == -1)
+            if((n = read(connfd, buffer, sizeof(buffer))) == -1)
             {
                 fprintf(stderr, "Error(receiving): %s\n", strerror(errno));
                 close(connfd);
@@ -188,7 +188,7 @@ void tcp_connections(const char* port)
             tcp_commands(buffer/*, connfd*/);
 
             //!FIXME message size
-            if(n = write(connfd, buffer, 16) == -1)
+            if((n = write(connfd, buffer, 16)) == -1)
             {
                 fprintf(stderr, "Error(receiving): %s\n", strerror(errno));
                 close(connfd);
@@ -213,7 +213,7 @@ int main(int argc, char *argv[])
     
     //TODO read args
 
-    //init_fs();
+    init_fs();
 
     child_pid = fork();
 
