@@ -219,7 +219,7 @@ void groups(const char* buffer)
 {
     char message[5];
 
-    snprintf(message, 5, "GLS\n");
+    sprintf(message, "GLS\n");
 
     udp_send(DSIP, DSport, message, sizeof(message)-1);
 }
@@ -292,6 +292,12 @@ void unsubscribe(const char* buffer)
 void my_groups(const char* buffer)
 {
     char message[11];
+
+    if(user.logged == false)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
 
     snprintf(message, 11, "GLM %s\n", user.uid);
 
