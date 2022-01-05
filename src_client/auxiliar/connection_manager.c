@@ -199,7 +199,7 @@ int receive_message_tcp()
 {
   int n;// offset, jump = 6;
   char buffer[128], *token;
-  char end[6];
+  //char end[6];
 
   if((n = read(fd, buffer, 128)) == -1) 
   {
@@ -210,9 +210,7 @@ int receive_message_tcp()
   if(strncmp(buffer, "RUL", 3) == 0)
   {
     token = strtok(buffer, " ");
-    printf("%s\n", token);
     token = strtok(NULL," ");
-    printf("%s\n", token);
     if(strncmp(token, "NOK", 3) == 0)
     {
       fprintf(stderr, "Group does not exist\n");
@@ -220,27 +218,19 @@ int receive_message_tcp()
     }
 
     token = strtok(NULL, " ");
-
+    memset(buffer, 0, 128);
     while( (n = read(fd, buffer, 128)) > 0)
     {
       token = strtok(buffer," ");
       while(token != NULL)
       {
-        /*Last word sometimes comes with unwanted information*/
-        if(strlen(token) != 5)
-        {
-          snprintf(end, 6, "%s\n", token);
-          printf("%s\n", end);
-          break;
-        }
-
         printf("%s\n", token);
         token = strtok(NULL, " ");
-
-        }
       }
 
+      memset(buffer, 0, 128);
 
+    }
   }
 
   return OK;
