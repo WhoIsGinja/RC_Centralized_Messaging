@@ -4,8 +4,18 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <ctype.h>
+#include <regex.h>
 #include "auxiliar/connection_manager.h"
 #include "../protocol_constants.h"
+
+regex_t reg_uid;
+regex_t reg_pass;
+regex_t reg_gid;
+regex_t reg_gname;
+regex_t reg_mid;
+regex_t reg_text;
+regex_t reg_fname;
+
 
 struct user_info
 {
@@ -26,57 +36,6 @@ void arguments_error()
 }
 
 
-/*
-*Check the argument format
-*arg: argument name
-*value: argument value
-*size: string size desired (0 to not check)
-*alphanum: true to check alphanumeric char, false to only check numeric
-*/
-bool check_arg(const char* arg, const char* value, int size, bool alphanum)
-{
-    int i;
-    bool error = false;
-  
-    //*size check
-    if(size != 0)
-    {
-        for(i = 0; value[i]!= '\0' ; i++)
-        {
-            switch (alphanum)
-            {
-                case true:
-                    if(isalnum(value[i]) == 0)
-                    {
-                        error = true;
-                    }
-                    break;
-                case false:
-                    if(isdigit(value[i]) == 0)
-                    {
-                        error = true;
-                    }
-                    break;
-            }
-
-            if(error)
-            {
-                fprintf(stderr, "%s has to be %s\n", arg, alphanum? "alphanumeric":"numeric");
-                break; 
-            }
-        }
-
-        if(i != size)
-        {
-            error = true;
-            fprintf(stderr, "%s must have a size of %d\n", arg, size); 
-        }
-    }
- 
-    return error;
-}
-
-
 //*Execute the registration command
 void reg(const char* buffer)
 {
@@ -90,15 +49,6 @@ void reg(const char* buffer)
         return;   
     }
 
-    //*Check uid and pass format
-    if(check_arg("uid", uid, 5, false))
-    {
-        return;
-    }
-    if(check_arg("password", pass, 8, true))
-    {
-        return;
-    }
 
     snprintf(message, 20, "REG %s %s\n", uid, pass);
 
@@ -118,12 +68,14 @@ void unr(const char* buffer){
     }
 
     //*Check uid and pass format
-    if(check_arg("uid", uid, 5, false))
-    {
+    if(regexec(&reg_uid, uid, 0, NULL, 0) != 0)
+    {   
+        fprintf(stderr, "UID has to be 5 numeric characters!\n");
         return;
     }
-    if(check_arg("password", pass, 8, true))
+    if(regexec(&reg_pass, pass, 0, NULL, 0) != 0)
     {
+        fprintf(stderr, "Password has to be 8 alphanumeric characters!\n");
         return;
     }
 
@@ -153,12 +105,14 @@ void login(const char* buffer)
     }
 
     //*Check uid and pass format
-    if(check_arg("uid", uid, 5, false))
-    {
+    if(regexec(&reg_uid, uid, 0, NULL, 0) != 0)
+    {   
+        fprintf(stderr, "UID has to be 5 numeric characters!\n");
         return;
     }
-    if(check_arg("password", pass, 8, true))
+    if(regexec(&reg_pass, pass, 0, NULL, 0) != 0)
     {
+        fprintf(stderr, "Password has to be 8 alphanumeric characters!\n");
         return;
     }
 
@@ -380,17 +334,60 @@ void retrieve(const char* buffer)
 }
 
 
-int main(int argc, char *argv[])
+void init()
 {
-    char buffer[BUFFER];
-    char *cmd;
-
     //*Initialize local user
     user.logged = false;
     memset(user.uid, 0, 6);
     memset(user.pass, 0, 9);
     memset(user.gid, 0, 3);
 
+    //*Initialize regular expressions
+    if(regcomp(&reg_uid, "^[0-9]{5}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for uid compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_pass, "^[0-9a-zA-Z]{8}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for pass compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_gid, "^[0-9]{2}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for gid compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_gname, "^[0-9a-zA-Z_-]{1,24}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for gname compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_mid, "^[0-9]{4}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for mid compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_text, "^[.]{1,240}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for text compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_fname, "^[0-9a-zA-Z_.-]{1,20}\\.[a-z]{3}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for fname compilation failed!");
+        exit(1);
+    }
+}
+
+
+int main(int argc, char *argv[])
+{
+    char buffer[BUFFER];
+    char *cmd;
+
+    init();
+    
     //TODO read flags
 
     if(gethostname(buffer, sizeof(buffer)) == -1)
@@ -405,7 +402,7 @@ int main(int argc, char *argv[])
     while(true)
     {
         fgets(buffer, sizeof(buffer), stdin);
-        buffer[strlen(buffer)-1] = 0;
+        buffer[strlen(buffer)-1] = '\0';
 
         if((cmd = strtok(buffer, " ")) == NULL)
         {
@@ -495,36 +492,13 @@ int main(int argc, char *argv[])
         }
     }
 
-    /* switch(argc){
-        case 1:
-            strcpy(DSIP,buffer);
-            DSport = 58005;
-            break;
-        case 3:
-            if(strcmp(argv[1],"-n") == 0){
-
-            }else if(strcmp(argv[1],"-p") == 0){
-
-            }else{
-
-            }
-
-            break;
-        case 5:
-            break;
-        default:
-            fprintf(stderr, "Invalid application launch format \n");
-    }
-
-    if(argc == 1){
-        strcpy(DSIP,buffer);
-        DSport = 58005;
-    }else if(argc == 3){
-        
-
-    }else if(argc == 5){
-
-    } */
+    regfree(&reg_uid);
+    regfree(&reg_pass);
+    regfree(&reg_gid);
+    regfree(&reg_gname);
+    regfree(&reg_mid);
+    regfree(&reg_text);
+    regfree(&reg_fname);
 
     exit(0);
 }

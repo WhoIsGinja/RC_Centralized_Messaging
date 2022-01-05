@@ -11,60 +11,17 @@
 #include <netdb.h>
 #include <signal.h>
 #include <errno.h>
+#include <regex.h>
 #include "../protocol_constants.h"
 #include "auxiliar/file_manager.h"
 
-
-/*
-*Check the argument format
-*arg: argument name
-*value: argument value
-*size: string size desired (0 to not check)
-*alphanum: true to check alphanumeric char, false to only check numeric
-*/
-bool check_arg(const char* arg, const char* value, int size, bool alphanum)
-{
-    int i;
-    bool error = false;
-  
-    //*size check
-    if(size != 0)
-    {
-        for(i = 0; value[i]!= '\0' ; i++)
-        {
-            switch (alphanum)
-            {
-                case true:
-                    if(isalnum(value[i]) == 0)
-                    {
-                        error = true;
-                    }
-                    break;
-                case false:
-                    if(isdigit(value[i]) == 0)
-                    {
-                        error = true;
-                    }
-                    break;
-            }
-
-            if(error)
-            {
-                fprintf(stderr, "%s has to be %s\n", arg, alphanum? "alphanumeric":"numeric");
-                break; 
-            }
-        }
-
-        if(i != size)
-        {
-            error = true;
-            fprintf(stderr, "%s must have a size of %d\n", arg, size); 
-        }
-    }
- 
-    return error;
-}
-
+regex_t reg_uid;
+regex_t reg_pass;
+regex_t reg_gid;
+regex_t reg_gname;
+regex_t reg_mid;
+regex_t reg_text;
+regex_t reg_fname;
 
 /*
 *  _    _ _____  _____  
@@ -79,17 +36,31 @@ bool check_arg(const char* arg, const char* value, int size, bool alphanum)
 int reg(char* buffer)
 {
     char *uid, *pass;
+
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL)
     {
         snprintf(buffer,  5, "ERR\n");
-        return;   
+        return NOK;   
     }
+
+    //*Check uid and pass format
+    if(regexec(&reg_uid, uid, 0, NULL, 0) != 0)
+    {   
+        return NOK;
+    }
+    if(regexec(&reg_pass, pass, 0, NULL, 0) != 0)
+    {
+        return NOK;
+    }
+
+    return user_create(uid, pass);
 }
 
 
 void udp_commands(char* buffer, int n)
 {
     char* cmd;
+    int status;
 
     if((cmd = strtok(buffer, " ")) == NULL)
     {   
@@ -99,10 +70,11 @@ void udp_commands(char* buffer, int n)
 
     if(n == 19 && strncmp(cmd, "REG", 3) == 0)
     {   
-        write(1, buffer, n);
-        
-        
-        //reg(buffer);
+        buffer[strlen(buffer) - 1] = '\0';
+        status = reg(buffer);
+
+        sprintf(buffer,"RRG %d", status);
+        reg(buffer);
     }
     else if(n == 4 && strncmp(cmd, "GLS\n", 4) == 0)
     {
@@ -110,9 +82,10 @@ void udp_commands(char* buffer, int n)
     }
     else
     {
-        snprintf(buffer,  5, "ERR\n");
+        snprintf(buffer, 5, "ERR\n");
     }
 
+    return;
 }
 
 
@@ -168,7 +141,7 @@ void udp_connections(const char* port)
             udp_commands(buffer, n);
 
             //!FIXME message size
-            n = sendto(fd, buffer, n, 0, (struct sockaddr*) &addr, addrlen);
+            n = sendto(fd, buffer, strlen(buffer), 0, (struct sockaddr*) &addr, addrlen);
 
             exit(0);
         }
@@ -274,10 +247,52 @@ void tcp_connections(const char* port)
 }
 
 
+void init(){
+    //*Initialize regular expressions
+    if(regcomp(&reg_uid, "^[0-9]{5}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for uid compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_pass, "^[0-9a-zA-Z]{8}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for pass compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_gid, "^[0-9]{2}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for gid compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_gname, "^[0-9a-zA-Z_-]{1,24}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for gname compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_mid, "^[0-9]{4}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for mid compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_text, "^[.]{1,240}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for text compilation failed!");
+        exit(1);
+    }
+    if(regcomp(&reg_fname, "^[0-9a-zA-Z_.-]{1,20}\\.[a-z]{3}$", REG_EXTENDED) != 0)
+    {
+        fprintf(stderr, "Regular expression for fname compilation failed!");
+        exit(1);
+    }
+}
+
+
 int main(int argc, char *argv[])
 {   
     pid_t child_pid;
     char port[6] = "58005\0";
+
+    init();
     
     //TODO read args
 
@@ -297,6 +312,14 @@ int main(int argc, char *argv[])
         kill(child_pid, SIGKILL);
         exit(1);
     }
+
+    regfree(&reg_uid);
+    regfree(&reg_pass);
+    regfree(&reg_gid);
+    regfree(&reg_gname);
+    regfree(&reg_mid);
+    regfree(&reg_text);
+    regfree(&reg_fname);
 
     exit(0);
 }
