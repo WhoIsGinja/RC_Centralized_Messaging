@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <regex.h>
 #include "../protocol_constants.h"
-#include "auxiliar/file_manager.h"
+#include "auxiliar/data_manager.h"
 
 regex_t reg_uid;
 regex_t reg_pass;
@@ -30,7 +30,7 @@ regex_t reg_fname;
 * | |  | | |  | |  ___/ 
 * | |__| | |__| | |     
 *  \____/|_____/|_| 
-*/    
+*/ 
 int reg(char* buffer)
 {
     char *uid, *pass;
@@ -144,8 +144,9 @@ void udp_connections(const char* port)
             exit(0);
         }
     }
-    //TODO
 }
+
+//!SECTION
 
 
 /*

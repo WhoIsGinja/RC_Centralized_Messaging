@@ -6,15 +6,15 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "file_manager.h"
+#include "data_manager.h"
 #include "../../protocol_constants.h"
 
-#define USERS "server_data/USERS"
-#define GROUPS "server_data/GROUPS"
+#define USERS "data_server/USERS"
+#define GROUPS "data_server/GROUPS"
 
 void init_server_data()
 {   
-    if(mkdir("server_data", S_IRWXU) == -1 && errno != EEXIST)
+    if(mkdir("data_server", S_IRWXU) == -1 && errno != EEXIST)
     {
         fprintf(stderr, "Error: %s\n", strerror(errno));
         exit(1);
@@ -33,7 +33,7 @@ void init_server_data()
     }
 }
 
-//* User Management
+// User Management
 int user_create(const char* uid, const char* pass)
 {   
     char dir[25];
@@ -42,7 +42,7 @@ int user_create(const char* uid, const char* pass)
 
     sprintf(dir, "%s/%s", USERS, uid);
 
-    //*Create user directory
+    // *Create user directory
     if(mkdir(dir, S_IRWXU) == -1)
     {   
         if(errno == EEXIST)

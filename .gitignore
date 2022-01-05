@@ -53,6 +53,6 @@ dkms.conf
 *.json
 
 #Custom
-server_data/
+data_server/
 server
-user
+client
