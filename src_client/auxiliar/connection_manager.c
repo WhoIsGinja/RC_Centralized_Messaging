@@ -51,7 +51,6 @@ int send_message_udp(const char *ds_ip, const char* ds_port, const char *message
   if(getaddrinfo(ds_ip, ds_port, &hints, &res) != 0)
   {
     fprintf(stderr, "Error getting server\n");
-    freeaddrinfo(res);
     return NOK;
   }
 
@@ -188,15 +187,41 @@ int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message
 /*copied, needs adjustments*/
 int receive_message_tcp()
 {
-  int n;
-  char buffer[128];
+  int n;// offset, jump = 6;
+  char buffer[4096], *token;
 
-  if((n = read(fd, buffer, 128)) == -1) 
+  if((n = read(fd, buffer, 4096)) == -1) 
   {
     fprintf(stderr, "Error receiving from server\n");
     return NOK;
   }
+
+  write(1,buffer, 256);
   
+  if(strncmp(buffer, "RUL", 3) == 0)
+  {
+    token = strtok(buffer, " ");
+    printf("%s\n", token);
+    token = strtok(NULL," ");
+    printf("%s\n", token);
+    if(strncmp(token, "NOK", 3) == 0)
+    {
+      fprintf(stderr, "Group does not exist\n");
+      return NOK;
+    }
+
+    token = strtok(NULL, " ");
+    printf("Users of group %s\n", token);
+
+    token = strtok(NULL, " ");
+    while(token != NULL)
+    {
+      printf("%s\n", token);
+      token = strtok(NULL, " ");
+    }
+
+  }
+
   printf("AYAYAYAYAYAYAYA BENNY LOUCO\n");
 
   return OK;

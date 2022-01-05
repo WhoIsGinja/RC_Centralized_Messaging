@@ -407,8 +407,11 @@ int main(int argc, char *argv[])
     }
 
     //FIXME hardcoded for testing
-    strcpy(DSIP,"DESKTOP-HPQ1DJ7");
-    strcpy(DSport,"58005");
+    /*strcpy(DSIP,"DESKTOP-HPQ1DJ7");
+    strcpy(DSport,"58005");*/
+
+    strcpy(DSIP,"tejo.tecnico.ulisboa.pt");
+    strcpy(DSport,"58011");
 
     while(true)
     {
