@@ -49,6 +49,17 @@ void reg(const char* buffer)
         return;   
     }
 
+    //*Check uid and pass format
+    if(regexec(&reg_uid, uid, 0, NULL, 0) != 0)
+    {   
+        fprintf(stderr, "UID has to be 5 numeric characters!\n");
+        return;
+    }
+    if(regexec(&reg_pass, pass, 0, NULL, 0) != 0)
+    {
+        fprintf(stderr, "Password has to be 8 alphanumeric characters!\n");
+        return;
+    }
 
     snprintf(message, 20, "REG %s %s\n", uid, pass);
 
@@ -396,8 +407,8 @@ int main(int argc, char *argv[])
     }
 
     //FIXME hardcoded for testing
-    strcpy(DSIP,"tejo.tecnico.ulisboa.pt");
-    strcpy(DSport,"58011");
+    strcpy(DSIP,"DESKTOP-HPQ1DJ7");
+    strcpy(DSport,"58005");
 
     while(true)
     {

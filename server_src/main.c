@@ -31,14 +31,13 @@ regex_t reg_fname;
 * | |__| | |__| | |     
 *  \____/|_____/|_| 
 */    
-                       
-
 int reg(char* buffer)
 {
     char *uid, *pass;
 
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL)
-    {
+    {   
+        printf("%s %s\n", uid, pass);
         snprintf(buffer,  5, "ERR\n");
         return NOK;   
     }
@@ -49,7 +48,7 @@ int reg(char* buffer)
         return NOK;
     }
     if(regexec(&reg_pass, pass, 0, NULL, 0) != 0)
-    {
+    {   
         return NOK;
     }
 
@@ -62,19 +61,19 @@ void udp_commands(char* buffer, int n)
     char* cmd;
     int status;
 
+    buffer[n-1] = '\0';
+
     if((cmd = strtok(buffer, " ")) == NULL)
     {   
         snprintf(buffer,  5, "ERR\n");
         return;
     }
 
-    if(n == 19 && strncmp(cmd, "REG", 3) == 0)
+    if(n == 19 && strncmp(cmd, "REG\n", 3) == 0)
     {   
-        buffer[strlen(buffer) - 1] = '\0';
         status = reg(buffer);
 
-        sprintf(buffer,"RRG %d", status);
-        reg(buffer);
+        sprintf(buffer,"RRG %d\n", status);
     }
     else if(n == 4 && strncmp(cmd, "GLS\n", 4) == 0)
     {
@@ -137,10 +136,9 @@ void udp_connections(const char* port)
         }
 
         if(fork() == 0)
-        {   
+        {  
             udp_commands(buffer, n);
 
-            //!FIXME message size
             n = sendto(fd, buffer, strlen(buffer), 0, (struct sockaddr*) &addr, addrlen);
 
             exit(0);
