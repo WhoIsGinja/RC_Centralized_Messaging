@@ -7,11 +7,21 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "connection_manager.h"
 #include "../../protocol_constants.h"
 
 int fd;
 char buffer[128];
+
+int digits_only(const char *s)
+{
+    while (*s) {
+        if (isdigit(*s++) == 0) return 0;
+    }
+
+    return 1;
+}
 
 int parse_status(const char* status)
 {
@@ -188,15 +198,14 @@ int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message
 int receive_message_tcp()
 {
   int n;// offset, jump = 6;
-  char buffer[4096], *token;
+  char buffer[128], *token;
+  char end[6];
 
-  if((n = read(fd, buffer, 4096)) == -1) 
+  if((n = read(fd, buffer, 128)) == -1) 
   {
     fprintf(stderr, "Error receiving from server\n");
     return NOK;
   }
-
-  write(1,buffer, 256);
   
   if(strncmp(buffer, "RUL", 3) == 0)
   {
@@ -211,18 +220,28 @@ int receive_message_tcp()
     }
 
     token = strtok(NULL, " ");
-    printf("Users of group %s\n", token);
 
-    token = strtok(NULL, " ");
-    while(token != NULL)
+    while( (n = read(fd, buffer, 128)) > 0)
     {
-      printf("%s\n", token);
-      token = strtok(NULL, " ");
-    }
+      token = strtok(buffer," ");
+      while(token != NULL)
+      {
+        /*Last word sometimes comes with unwanted information*/
+        if(strlen(token) != 5)
+        {
+          snprintf(end, 6, "%s\n", token);
+          printf("%s\n", end);
+          break;
+        }
+
+        printf("%s\n", token);
+        token = strtok(NULL, " ");
+
+        }
+      }
+
 
   }
-
-  printf("AYAYAYAYAYAYAYA BENNY LOUCO\n");
 
   return OK;
 }
