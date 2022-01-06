@@ -155,6 +155,8 @@ int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message
   struct addrinfo hints, *res;
   int n, errcode;
   char *token;
+
+  char *str;
   //FILE fp;
   fd = socket(AF_INET, SOCK_STREAM, 0);
   if(fd == -1)
@@ -190,9 +192,19 @@ int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message
 
   if(strncmp(message, "PST", 3) == 0)
   {
-    printf(" B4 TOKEN ->>>>>> %s\n",message); 
-    token = strtok(aux, " ");
-    printf("%s\n", token);
+
+      str = strdup(message);
+    printf(" B4 TOKEN ->>>>>> %s",message); 
+    token = strtok(str, " ");
+    printf("%s", token);
+
+    token = strtok(str, " ");
+    printf("%s", token);
+
+    if((token = strtok(str, " ")) != NULL)
+    {
+      printf("%s", str);
+    }
   }
 
 
