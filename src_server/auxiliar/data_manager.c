@@ -33,7 +33,9 @@ void init_server_data()
     }
 }
 
-// User Management
+
+
+//* User Management
 int user_create(const char* uid, const char* pass)
 {   
     char dir[25];
@@ -96,10 +98,49 @@ int user_create(const char* uid, const char* pass)
     return OK;
 }
 
-int user_delete(const char* uid)
+
+int check_pass(const char* uid, const char* pass)
+{
+    char file[40];
+    char stored_pass[8];
+    FILE* f = NULL;
+
+    sprintf(file, "%s/%s/%s_pass.txt", USERS, uid, uid);
+    if((f = fopen(file, "r")) == NULL)
+    {   
+        fprintf(stderr, "Error(opening user(%s) password file): %s", uid, strerror(errno));
+        return NOK;
+    }
+
+    if(fgets(stored_pass, 9, f) == NULL)
+    {
+        fprintf(stderr, "Error(reading user(%s) password): %s\n", uid, strerror(errno));
+        fclose(f);
+        return NOK;
+    }
+
+    if(strncmp(pass, stored_pass, 8) != 0)
+    {     
+        return NOK;
+    }
+
+    fclose(f);
+
+
+    return OK;
+}
+
+
+int user_delete(const char* uid, const char* pass)
 {
     char dir[25];
     char file[41];
+
+
+    if(check_pass(uid, pass) == NOK)
+    {
+        return NOK;
+    }
 
     sprintf(dir, "%s/%s", USERS, uid);
 
@@ -123,37 +164,10 @@ int user_delete(const char* uid)
         return NOK;
     }
 
-    return OK;
-}
-
-int check_pass(const char* uid, const char* pass)
-{
-    char file[40];
-    char stored_pass[8];
-    FILE* f = NULL;
-
-    sprintf(file, "%s/%s/%s_pass.txt", USERS, uid, uid);
-    if((f = fopen(file, "w+")) == NULL)
-    {   
-        fprintf(stderr, "Error(opening user(%s) password file): %s", uid, strerror(errno));
-        return NOK;
-    }
-
-    if(fgets(stored_pass, 8, f) == NULL)
-    {
-        fprintf(stderr, "Error(reading user(%s) password): %s\n", uid, strerror(errno));
-        return NOK;
-    }
-
-    fclose(f);
-
-    if(strncmp(pass, stored_pass, 8) != 0)
-    {
-        return NOK;
-    }
 
     return OK;
 }
+
 
 int user_entry(const char* uid, const char* pass, bool login)
 {   
@@ -177,14 +191,18 @@ int user_entry(const char* uid, const char* pass, bool login)
         return NOK;
     }
 
-    fclose(f);
+    if(f != NULL)
+    {
+        fclose(f);
+    }
 
     return OK;
 }
 
-//*Groups Management
 
-int create_dir(const char* dir)
+
+//*Groups Management
+/* int create_dir(const char* dir)
 {
     if(mkdir(dir, S_IRWXU) == -1)
     {
@@ -207,7 +225,7 @@ int delete_dir(const char* dir)
 }
 
 
-//*Files Management
+//Files Management
 int write_file(const char* file, const char* content)
 {   
     FILE* f;
@@ -237,4 +255,4 @@ int delete_file(const char* file)
     }
 
     return OK;
-}
+} */

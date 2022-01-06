@@ -27,3 +27,11 @@ src_server/main.o: src_server/auxiliar/data_manager.h protocol_constants.h src_s
 
 clean:
 	rm src_client/*.o src_client/auxiliar/*.o client src_server/auxiliar/data_manager.o src_server/*.o server
+
+rclient:
+	clear
+	./client
+
+rserver:
+	clear
+	./server

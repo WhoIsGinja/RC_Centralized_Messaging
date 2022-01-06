@@ -16,7 +16,6 @@ regex_t reg_mid;
 regex_t reg_text;
 regex_t reg_fname;
 
-
 struct user_info
 {
     bool logged;
@@ -159,6 +158,8 @@ void logout()
         memset(user.pass, 0, 9);
         memset(user.gid, 0, 3);
     }
+
+
 }
 
 
@@ -407,11 +408,11 @@ int main(int argc, char *argv[])
     }
 
     //FIXME hardcoded for testing
-    /*strcpy(DSIP,"DESKTOP-HPQ1DJ7");
-    strcpy(DSport,"58005");*/
+    strcpy(DSIP,"DESKTOP-HPQ1DJ7");
+    strcpy(DSport,"58005");
 
-    strcpy(DSIP,"tejo.tecnico.ulisboa.pt");
-    strcpy(DSport,"58011");
+    /* strcpy(DSIP,"tejo.tecnico.ulisboa.pt");
+    strcpy(DSport,"58011"); */
 
     while(true)
     {

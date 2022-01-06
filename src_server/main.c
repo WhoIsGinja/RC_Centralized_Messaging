@@ -15,6 +15,8 @@
 #include "../protocol_constants.h"
 #include "auxiliar/data_manager.h"
 
+enum uid_pass_cmd {REG, UNR, LOG, OUT};
+
 regex_t reg_uid;
 regex_t reg_pass;
 regex_t reg_gid;
@@ -23,6 +25,9 @@ regex_t reg_mid;
 regex_t reg_text;
 regex_t reg_fname;
 
+bool verbose = false;
+
+
 /*
 *  _    _ _____  _____  
 * | |  | |  __ \|  __ \ 
@@ -30,16 +35,16 @@ regex_t reg_fname;
 * | |  | | |  | |  ___/ 
 * | |__| | |__| | |     
 *  \____/|_____/|_| 
-*/ 
-int reg(char* buffer)
+*/
+
+//* Commands that have the format of: CMD UID PASS
+int cmd_uid_pass(char* buffer, int cmd)
 {
     char *uid, *pass;
 
     if((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL)
     {   
-        printf("%s %s\n", uid, pass);
-        snprintf(buffer,  5, "ERR\n");
-        return NOK;   
+        return ERR;   
     }
 
     //*Check uid and pass format
@@ -52,16 +57,29 @@ int reg(char* buffer)
         return NOK;
     }
 
-    return user_create(uid, pass);
-}
+    switch (cmd)
+    {
+    case REG:
+        return user_create(uid, pass);
+        break;
+    case UNR:
+        return user_delete(uid, pass);
+        break;
+    case LOG:
+        return user_entry(uid, pass, true);
+        break;
+    case OUT:
+        return user_entry(uid, pass, false);
+        break;
+    }
 
+    return ERR;
+}
 
 void udp_commands(char* buffer, int n)
 {
     char* cmd;
     int status;
-
-    buffer[n-1] = '\0';
 
     if((cmd = strtok(buffer, " ")) == NULL)
     {   
@@ -69,13 +87,27 @@ void udp_commands(char* buffer, int n)
         return;
     }
 
-    if(n == 19 && strncmp(cmd, "REG\n", 3) == 0)
+    if(n == 19 && strcmp(cmd, "REG") == 0)
     {   
-        status = reg(buffer);
-
+        status = cmd_uid_pass(buffer, REG);
         sprintf(buffer,"RRG %d\n", status);
     }
-    else if(n == 4 && strncmp(cmd, "GLS\n", 4) == 0)
+    else if(n == 19 && strcmp(cmd, "UNR") == 0)
+    {   
+        status = cmd_uid_pass(buffer, UNR);
+        sprintf(buffer,"RUN %d\n", status);
+    }
+    else if(n == 19 && strcmp(cmd, "LOG") == 0)
+    {   
+        status = cmd_uid_pass(buffer, LOG);
+        sprintf(buffer,"RLO %d\n", status);
+    }
+    else if(n == 19 && strcmp(cmd, "OUT") == 0)
+    {   
+        status = cmd_uid_pass(buffer, OUT);
+        sprintf(buffer,"ROU %d\n", status);
+    }
+    else if(n == 4 && strcmp(cmd, "GLS") == 0)
     {
         fprintf(stderr,"GLS works\n");
     }
@@ -135,19 +167,23 @@ void udp_connections(const char* port)
             return;
         }
 
+        buffer[n-1] = '\0';
+
+        if(verbose)
+        {   
+            printf("REQUEST: %s (IP:%s | PORT:%d)\n", buffer, inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+        }
+
         if(fork() == 0)
         {  
             udp_commands(buffer, n);
 
             n = sendto(fd, buffer, strlen(buffer), 0, (struct sockaddr*) &addr, addrlen);
-
+            
             exit(0);
         }
     }
 }
-
-//!SECTION
-
 
 /*
 *  _______ _____ _____  
@@ -289,7 +325,10 @@ void init(){
 int main(int argc, char *argv[])
 {   
     pid_t child_pid;
+
+    //FIXME
     char port[6] = "58005\0";
+    verbose = true;
 
     init();
     
