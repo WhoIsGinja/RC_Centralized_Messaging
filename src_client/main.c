@@ -34,7 +34,6 @@ void arguments_error()
     fprintf(stderr, "Not enough arguments\n");
 }
 
-
 //*Execute the registration command
 void reg(const char* buffer)
 {
@@ -287,10 +286,9 @@ void sag(const char* buffer)
         return;   
     }
 
-    if(strlen(GID) != 2)
+    if(regexec(&reg_gid, GID, 0, NULL, 0) != 0)
     {
-        //FIXME informational message
-        arguments_error();
+        fprintf(stderr, "Invalid group ID!\n");
         return;
     }
 
@@ -309,6 +307,12 @@ void showgid()
         return;
     }
 
+    if(regexec(&reg_gid, user.gid, 0, NULL, 0) != 0)
+    {
+        fprintf(stderr, "No group ID!\n");
+        return;
+    }
+
     printf("Selected group ID: %s", user.gid);
 }
 
@@ -322,9 +326,10 @@ void ulist()
         fprintf(stderr, "No user logged in!\n");
         return;
     }
-    else if(strncmp(user.gid, "\0",1) == 0)
+    if(regexec(&reg_gid, user.gid, 0, NULL, 0) != 0)
     {
-        fprintf(stderr, "No group selected\n");
+        fprintf(stderr, "No group selected!\n");
+        return;
     }
 
     snprintf(message, 8, "ULS %s\n", user.gid);
@@ -336,7 +341,60 @@ void ulist()
 
 void post(const char* buffer)
 {
+    //char message[TSIZE], *fName;
+    char message[270], *text, *fName;
 
+    if(user.logged == false)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
+    if(regexec(&reg_gid, user.gid, 0, NULL, 0) != 0)
+    {
+        fprintf(stderr, "No group selected!\n");
+        return;
+    }
+    if(strncmp(buffer+5,"\"",1) != 0)
+    {
+        fprintf(stderr, "Must have text delimited by \"\"\n");
+        return;
+    }
+
+    text = strtok(NULL, "\"");
+
+    if(strlen(text) > 240)
+    {
+        fprintf(stderr, "Text over characters limit!\n");
+        return;
+    }
+    if(regexec(&reg_text, text, 0, NULL, 0) != 0)
+    {
+        fprintf(stderr, "Invalid character in text\n");
+        return;
+    }
+
+    if((fName = strtok(NULL, " ")) != NULL)
+    {
+        printf("%s\n", fName);
+        if(regexec(&reg_fname, fName, 0, NULL, 0) != 0)
+        {
+            fprintf(stderr, "Invalid file name\n");
+            return;
+        }
+
+        snprintf(message, 270, "PST %s %s\n", text, fName);
+        printf("uno %s\n", message);
+
+        /*meter cenas a enviar*/
+    }
+    else
+    {
+        snprintf(message, 244, "PST %s\n", text);
+        printf("dos %s\n", message);
+    }
+
+    tcp_send(DSIP,DSport,message, strlen(message));
+    printf("YAYAAYAY\n");
 }
 
 
@@ -380,7 +438,7 @@ void init()
         fprintf(stderr, "Regular expression for mid compilation failed!");
         exit(1);
     }
-    if(regcomp(&reg_text, "^[.]{1,240}$", REG_EXTENDED) != 0)
+    if(regcomp(&reg_text, "^.{1,240}$", REG_EXTENDED) != 0)
     {
         fprintf(stderr, "Regular expression for text compilation failed!");
         exit(1);
@@ -408,11 +466,11 @@ int main(int argc, char *argv[])
     }
 
     //FIXME hardcoded for testing
-    strcpy(DSIP,"DESKTOP-HPQ1DJ7");
-    strcpy(DSport,"58005");
+    /*strcpy(DSIP,"DESKTOP-HPQ1DJ7");
+    strcpy(DSport,"58005");*/
 
-    /* strcpy(DSIP,"tejo.tecnico.ulisboa.pt");
-    strcpy(DSport,"58011"); */
+    strcpy(DSIP,"tejo.tecnico.ulisboa.pt");
+    strcpy(DSport,"58011");
 
     while(true)
     {
