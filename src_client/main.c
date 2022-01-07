@@ -344,7 +344,7 @@ void post(const char* buffer)
     char message[270], *text, *fName;
     FILE *fp;
     char array[1024] = {0};
-    char data[5000000];
+    char data[10000000];
 
     if(user.logged == false)
     {
@@ -400,7 +400,8 @@ void post(const char* buffer)
         }
                                 //    18 + len  |  len fname + 10 + len data
         snprintf(message, 28 + strlen(text) + strlen(fName) + strlen(data), "PST %s %s %ld %s %s %ld %s\n", user.uid, user.gid, strlen(text), text, fName, strlen(data), data);
-        printf("uno %s\n", message);
+        printf("%ld\n",strlen(data));
+        //printf("uno %s\n", message);
 
         /*meter cenas a enviar*/
     }
@@ -420,6 +421,31 @@ void post(const char* buffer)
 
 void retrieve(const char* buffer)
 {
+    char message[18];
+    char *mid;
+
+    if((mid = strtok(NULL, " ")) == NULL)
+    {
+        arguments_error();
+        return;
+    }
+    if(user.logged == false)
+    {
+        fprintf(stderr, "No user logged in!\n");
+        return;
+    }
+    if(regexec(&reg_mid, mid, 0, NULL, 0) != 0)
+    {   
+        fprintf(stderr, "UID has to be 5 numeric characters!\n");
+        return;
+    }
+    
+    snprintf(message, 18, "RTV %s %s %s\n", user.uid, user.gid, mid);
+    printf("%s\n", message);
+
+    tcp_send(DSIP, DSport, message, strlen(message));
+
+    
 
 }
 
