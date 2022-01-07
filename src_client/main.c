@@ -64,7 +64,6 @@ void reg(const char* buffer)
     udp_send(DSIP, DSport, message, sizeof(message)-1);
 }
 
-
 void unr(const char* buffer){
     char *uid, *pass;
     char message[20];
@@ -343,6 +342,9 @@ void post(const char* buffer)
 {
     //char message[TSIZE], *fName;
     char message[270], *text, *fName;
+    FILE *fp;
+    char array[1024] = {0};
+    char data[5000000];
 
     if(user.logged == false)
     {
@@ -361,6 +363,7 @@ void post(const char* buffer)
     }
 
     text = strtok(NULL, "\"");
+    printf("texto ->> %s\n", text);
 
     if(strlen(text) > 240)
     {
@@ -375,25 +378,42 @@ void post(const char* buffer)
 
     if((fName = strtok(NULL, " ")) != NULL)
     {
-        printf("%s\n", fName);
+        printf("MINORIAS\n");
+
         if(regexec(&reg_fname, fName, 0, NULL, 0) != 0)
         {
             fprintf(stderr, "Invalid file name\n");
             return;
         }
 
-        snprintf(message, 270, "PST %s %s\n", text, fName);
+        printf("%s\n", fName);
+
+        fp = fopen(fName, "r");
+        if(fp == NULL)
+        {
+            fprintf(stderr, "Error opening file!\n");
+        }
+
+        while(fgets(array, 1024, fp) != NULL) {
+            strncat(data,array, strlen(array));
+            bzero(array, 1024);
+        }
+                                //    18 + len  |  len fname + 10 + len data
+        snprintf(message, 28 + strlen(text) + strlen(fName) + strlen(data), "PST %s %s %ld %s %s %ld %s\n", user.uid, user.gid, strlen(text), text, fName, strlen(data), data);
         printf("uno %s\n", message);
 
         /*meter cenas a enviar*/
     }
     else
-    {
-        snprintf(message, 244, "PST %s\n", text);
+    {    
+        
+        printf("PRETOS\n");
+                              // 4   6  3  4  240 +1
+        snprintf(message, 18 + strlen(text), "PST %s %s %ld %s\n", user.uid, user.gid, strlen(text), text);
         printf("dos %s\n", message);
     }
 
-    tcp_send(DSIP,DSport,message, strlen(message));
+    //tcp_send(DSIP,DSport,message, strlen(message));
     printf("YAYAAYAY\n");
 }
 
