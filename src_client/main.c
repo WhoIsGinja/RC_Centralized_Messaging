@@ -35,7 +35,7 @@ void arguments_error()
 }
 
 //*Execute the registration command
-void reg(const char* buffer)
+void reg(char* buffer)
 {
     char *uid, *pass;
     char message[20];
@@ -64,7 +64,7 @@ void reg(const char* buffer)
     udp_send(DSIP, DSport, message, sizeof(message)-1);
 }
 
-void unr(const char* buffer){
+void unr(char* buffer){
     char *uid, *pass;
     char message[20];
 
@@ -93,7 +93,7 @@ void unr(const char* buffer){
 }
 
  
-void login(const char* buffer)
+void login(char* buffer)
 {   
     char *uid, *pass;
     char message[20];
@@ -179,7 +179,7 @@ void ex()
 }
 
 
-void groups(const char* buffer)
+void groups(char* buffer)
 {
     char message[5];
 
@@ -189,7 +189,7 @@ void groups(const char* buffer)
 }
 
 
-void subscribe(const char* buffer)
+void subscribe(char* buffer)
 {
     char message[38];
     char *GID, *GName;
@@ -221,7 +221,7 @@ void subscribe(const char* buffer)
 }
 
 
-void unsubscribe(const char* buffer)
+void unsubscribe(char* buffer)
 {
     char message[16];
     char *GID;
@@ -253,7 +253,7 @@ void unsubscribe(const char* buffer)
 }
 
 
-void my_groups(const char* buffer)
+void my_groups(char* buffer)
 {
     char message[11];
 
@@ -269,7 +269,7 @@ void my_groups(const char* buffer)
 }
 
 
-void sag(const char* buffer)
+void sag(char* buffer)
 {
     char *GID;
 
@@ -338,7 +338,7 @@ void ulist()
 }
 
 
-void post(const char* buffer)
+void post(char* buffer)
 {
     //char message[TSIZE], *fName;
     char message[270], *text, *fName;
@@ -417,7 +417,7 @@ void post(const char* buffer)
 }
 
 
-void retrieve(const char* buffer)
+void retrieve(char* buffer)
 {
     char message[19];
     char *mid;
@@ -515,9 +515,6 @@ int main(int argc, char *argv[])
     }
 
     //FIXME hardcoded for testing
-    /*strcpy(DSIP,"DESKTOP-HPQ1DJ7");
-    strcpy(DSport,"58005");*/
-
     strcpy(DSIP,"tejo.tecnico.ulisboa.pt");
     strcpy(DSport,"58011");
 
