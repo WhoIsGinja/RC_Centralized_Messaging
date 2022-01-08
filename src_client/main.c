@@ -356,8 +356,6 @@ void post(char *buffer)
     //char message[TSIZE], *fName;
     char message[270], *text, *fName;
     FILE *fp;
-    char array[1024] = {0};
-    char data[10000000];
 
     if (user.logged == false)
     {
@@ -374,6 +372,7 @@ void post(char *buffer)
         fprintf(stderr, "Must have text delimited by \"\"\n");
         return;
     }
+
 
     text = strtok(NULL, "\"");
     printf("texto ->> %s\n", text);
@@ -405,6 +404,13 @@ void post(char *buffer)
         {
             fprintf(stderr, "Error opening file!\n");
         }
+<<<<<<< HEAD
+                                //    18 + len  |  len fname + 10 + len data
+        snprintf(message, 28 + strlen(text) + strlen(fName), "PST %s %s %ld %s %s", user.uid, user.gid, strlen(text), text, fName);
+        
+        printf("uno %s\n", message);
+        tcp_send_file(DSIP,DSport,message, strlen(message));
+=======
 
         while (fgets(array, 1024, fp) != NULL)
         {
@@ -415,18 +421,29 @@ void post(char *buffer)
         snprintf(message, 28 + strlen(text) + strlen(fName) + strlen(data), "PST %s %s %ld %s %s %ld %s\n", user.uid, user.gid, strlen(text), text, fName);
         printf("%ld\n", strlen(data));
         //printf("uno %s\n", message);
+>>>>>>> 394834603708b3740636742cf575fd96b32d26c2
 
         /*meter cenas a enviar*/
     }
     else
+<<<<<<< Updated upstream
+=======
+<<<<<<< HEAD
+    {    
+        
+                              // 4   6  3  4  240 +1
+        snprintf(message, 18 + strlen(text), "PST %s %s %ld %s ", user.uid, user.gid, strlen(text), text);
+        
+=======
+>>>>>>> Stashed changes
     {
 
         // 4   6  3  4  240 +1
         snprintf(message, 18 + strlen(text), "PST %s %s %ld %s\n", user.uid, user.gid, strlen(text), text);
+>>>>>>> 394834603708b3740636742cf575fd96b32d26c2
         printf("dos %s\n", message);
+        tcp_send(DSIP,DSport,message, strlen(message));
     }
-
-    //tcp_send(DSIP,DSport,message, strlen(message));
     printf("YAYAAYAY\n");
 }
 
