@@ -204,6 +204,7 @@ int receive_message_tcp()
     fprintf(stderr, "Error receiving from server\n");
     return NOK;
   }
+
   
   if(strncmp(buffer, "RUL", 3) == 0)
   {
@@ -217,7 +218,7 @@ int receive_message_tcp()
 
     token = strtok(NULL, " ");
     memset(buffer, 0, 128);
-    while( (n = read(fd, buffer, 128)) > 0)
+    while((n = read(fd, buffer, 128)) > 0)
     {
       token = strtok(buffer," ");
       while(token != NULL)

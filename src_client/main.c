@@ -378,7 +378,6 @@ void post(const char* buffer)
 
     if((fName = strtok(NULL, " ")) != NULL)
     {
-        printf("MINORIAS\n");
 
         if(regexec(&reg_fname, fName, 0, NULL, 0) != 0)
         {
@@ -399,7 +398,7 @@ void post(const char* buffer)
             bzero(array, 1024);
         }
                                 //    18 + len  |  len fname + 10 + len data
-        snprintf(message, 28 + strlen(text) + strlen(fName) + strlen(data), "PST %s %s %ld %s %s %ld %s\n", user.uid, user.gid, strlen(text), text, fName, strlen(data), data);
+        snprintf(message, 28 + strlen(text) + strlen(fName) + strlen(data), "PST %s %s %ld %s %s %ld %s\n", user.uid, user.gid, strlen(text), text, fName);
         printf("%ld\n",strlen(data));
         //printf("uno %s\n", message);
 
@@ -408,7 +407,6 @@ void post(const char* buffer)
     else
     {    
         
-        printf("PRETOS\n");
                               // 4   6  3  4  240 +1
         snprintf(message, 18 + strlen(text), "PST %s %s %ld %s\n", user.uid, user.gid, strlen(text), text);
         printf("dos %s\n", message);
@@ -421,7 +419,7 @@ void post(const char* buffer)
 
 void retrieve(const char* buffer)
 {
-    char message[18];
+    char message[19];
     char *mid;
 
     if((mid = strtok(NULL, " ")) == NULL)
@@ -434,14 +432,19 @@ void retrieve(const char* buffer)
         fprintf(stderr, "No user logged in!\n");
         return;
     }
+    if(regexec(&reg_gid, user.gid, 0, NULL, 0) != 0)
+    {   
+        fprintf(stderr, "No group selected\n");
+        return;
+    }
     if(regexec(&reg_mid, mid, 0, NULL, 0) != 0)
     {   
-        fprintf(stderr, "UID has to be 5 numeric characters!\n");
+        fprintf(stderr, "MID has to be 4 numeric characters!\n");
         return;
     }
     
-    snprintf(message, 18, "RTV %s %s %s\n", user.uid, user.gid, mid);
-    printf("%s\n", message);
+    snprintf(message, 19, "RTV %s %s %s\n", user.uid, user.gid, mid);
+    printf("%s", message);
 
     tcp_send(DSIP, DSport, message, strlen(message));
 
