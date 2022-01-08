@@ -130,7 +130,7 @@ int receive_message_udp()
 }
 
 
-int udp_send(const char *ds_ip, const char* ds_port, const char *message, int size)
+int udp_send(const char *ds_ip, const char* ds_port, char *message, int size)
 {  
   int status;
   
@@ -150,7 +150,7 @@ int udp_send(const char *ds_ip, const char* ds_port, const char *message, int si
 //*TCP transmissions 
 
 /*WIP*/
-int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message, int size)
+int send_message_tcp(const char* ds_ip, const char* ds_port, char *message, int size)
 {
   struct addrinfo hints, *res;
   int n, errcode;
@@ -182,6 +182,92 @@ int send_message_tcp(const char* ds_ip, const char* ds_port, const char *message
   }
 
   if((n = write(fd,message, size) == -1))
+  {
+    fprintf(stderr, "Error sending to server\n");
+    return NOK;
+  }
+
+  return OK;
+
+}
+
+int send_message_tcp_file(const char* ds_ip, const char* ds_port, char *message, int size)
+{
+  struct addrinfo hints, *res;
+  int n, errcode, fsize;
+  FILE *fp;
+  char *token;
+  char *end = "\n";
+  char data[1024] = {0};
+  char *array;
+
+  array = strdup(message);
+
+  //Testing shit
+  token = strtok(array, " ");
+  token = strtok(NULL, " ");
+  token = strtok(NULL, " ");
+  token = strtok(NULL, " ");
+  token = strtok(NULL, " ");
+  token = strtok(NULL, " ");
+  printf("%s\n", token);
+  printf("%s\n", message);
+
+  fp = fopen(token, "r");
+  if(fp == NULL)
+  {
+    fprintf(stderr, "Error in opening file\n");
+  }
+
+  fseek(fp, 0L, SEEK_END);
+  fsize = ftell(fp);
+
+  printf("%d\n", fsize);
+
+
+  fd = socket(AF_INET, SOCK_STREAM, 0);
+  if(fd == -1)
+  {
+    fprintf(stderr, "Error creating socket\n");
+    return NOK;
+  }
+
+  memset(&hints, 0, sizeof(hints));
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_STREAM;
+
+  errcode = getaddrinfo(ds_ip, ds_port, &hints, &res);
+  if(errcode != 0)
+  {
+    fprintf(stderr, "Error getting the server\n");
+    freeaddrinfo(res);
+    return NOK;
+  }
+
+  n = connect(fd, res->ai_addr, res->ai_addrlen);
+  if(n == -1)
+  {
+    freeaddrinfo(res);
+    return NOK;
+  }
+
+  printf("TESTI %s\n", message);
+  if((n = write(fd,message, size) == -1))
+  {
+    fprintf(stderr, "Error sending to server\n");
+    return NOK;
+  }
+
+  while(fgets(data, 1024, fp) != NULL)
+  {
+    if (send(fd, data, sizeof(data), 0) == -1) {
+      fprintf(stderr, "Error sending file\n");
+      return NOK;
+    }
+    bzero(data, 1024);
+  }
+
+  if((n = write(fd,end, strlen(end)) == -1))
   {
     fprintf(stderr, "Error sending to server\n");
     return NOK;
@@ -232,16 +318,11 @@ int receive_message_tcp()
     }
   }
 
-  else if(strncmp(buffer, "PST", 3) == 0)
-  {
-
-  }
-
   return OK;
 }
 
 //TODO replicate similar UDP functions for TCP operations
-int tcp_send(const char* ds_ip, const char* ds_port, const char* message, int size) {
+int tcp_send(const char* ds_ip, const char* ds_port, char* message, int size) {
   int status;
 
   if(send_message_tcp(ds_ip,ds_port,message,size) == NOK)
@@ -251,6 +332,23 @@ int tcp_send(const char* ds_ip, const char* ds_port, const char* message, int si
   }
 
   status = receive_message_tcp();
+  close(fd);
+
+  return status;
+}
+
+int tcp_send_file(const char* ds_ip, const char* ds_port, char* message, int size) 
+{
+  int status;
+
+  if(send_message_tcp_file(ds_ip,ds_port,message,size) == NOK)
+  {
+    close(fd);
+    return NOK;
+  }
+
+  //status = receive_message_tcp();
+  status = 1;
   close(fd);
 
   return status;
