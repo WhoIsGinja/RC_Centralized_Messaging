@@ -213,16 +213,29 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 
 		bzero(buffer, sizeof(buffer));
 
-		while(fgets(buffer, sizeof(buffer), f) != NULL)
+		n = fread(buffer, 1, sizeof(buffer), f);
+
+		if ((n = write(fd, buffer, n) == -1))
+		{
+			fprintf(stderr, "Error sending to server\n");
+			return NOK;
+		}
+
+		while(!feof(f))
 		{	
-			if ((n = write(fd, buffer, strlen(buffer)) == -1))
+			bzero(buffer, sizeof(buffer));
+			
+			n = fread(buffer, 1, sizeof(buffer), f);
+
+			if ((n = write(fd, buffer, n) == -1))
 			{
 				fprintf(stderr, "Error sending to server\n");
 				return NOK;
 			}
 
-			bzero(buffer, sizeof(buffer));
 		}
+
+		
 
 		fclose(f);
 	}
