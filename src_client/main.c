@@ -14,7 +14,7 @@ regex_t reg_gid;
 regex_t reg_gname;
 regex_t reg_mid;
 regex_t reg_text;
-regex_t reg_fname;
+regex_t reg_file;
 
 struct user_info
 {
@@ -347,12 +347,94 @@ void ulist()
 
     snprintf(message, 8, "ULS %s\n", user.gid);
 
-    tcp_send(DSIP, DSport, message, strlen(message));
+    tcp_send(DSIP, DSport, message, strlen(message), NULL);
 }
 
 //TODO
-void post(char *buffer)
-{
+void post()
+{   
+    //. post "text" [fname]
+
+    char *str, *text, *filename, *end;
+    char message[512];
+
+    /* // Check if there is no login
+    if (user.logged == false)
+    {
+        fprintf(stderr, "[!]No user logged in\n");
+        return;
+    } */
+
+    //* Get rest of the command
+    if ((str = strtok(NULL, "\\0")) == NULL)
+    {
+        arguments_error();
+        return;
+    }
+
+    //* If is only text
+    if (regexec(&reg_text, str, 0, NULL, 0) == 0)
+    {
+        if ((text = strtok(str, "\"")) == NULL || (filename = strtok(NULL, "\"")) != NULL)
+        {
+            arguments_error();
+            return;
+        }
+    }
+    //* If its text and file
+    else if(regexec(&reg_file, str, 0, NULL, 0) == 0)
+    {
+        if ((text = strtok(str, "\"")) == NULL || (filename = strtok(NULL, "\0")) == NULL || (end = strtok(NULL, "\0")) != NULL)
+        {
+            arguments_error();
+            return;
+        }
+
+        filename++;
+    }
+    else
+    {
+        fprintf(stderr, "[!]Wrong format for post, check arguments\n");;
+        return;
+    }
+
+    sprintf(message, "PST %s %s %ld %s", user.uid, user.gid, strlen(text), text);
+    if(filename == NULL)
+    {   
+        tcp_send(DSIP, DSport, message, strlen(message), NULL);
+    }
+    else
+    {
+        tcp_send(DSIP, DSport, message, strlen(message), filename);
+    }
+/*
+
+        while (fgets(array, 1024, fp) != NULL)
+        {
+            strncat(data, array, strlen(array));
+            bzero(array, 1024);
+        }
+        //    18 + len  |  len fname + 10 + len data
+        snprintf(message, 28 + strlen(text) + strlen(fName) + strlen(data), "PST %s %s %ld %s %s %ld %s\n", user.uid, user.gid, strlen(text), text, fName);
+        printf("%ld\n", strlen(data));
+        //printf("uno %s\n", message);
+
+    }
+    else
+    {
+
+        // 4   6  3  4  240 +1
+        snprintf(message, 18 + strlen(text), "PST %s %s %ld %s\n", user.uid, user.gid, strlen(text), text);
+        printf("dos %s\n", message);
+    }
+
+    //tcp_send(DSIP,DSport,message, strlen(message));
+    printf("YAYAAYAY\n"); */
+}
+
+
+/* void post(char *buffer)
+{   
     //char message[TSIZE], *fName;
     char message[270], *text, *fName;
     FILE *fp;
@@ -423,7 +505,7 @@ void post(char *buffer)
         //printf("uno %s\n", message);
 >>>>>>> 394834603708b3740636742cf575fd96b32d26c2
 
-        /*meter cenas a enviar*/
+        //meter cenas a enviar
     }
     else
 <<<<<<< Updated upstream
@@ -445,7 +527,7 @@ void post(char *buffer)
         tcp_send(DSIP,DSport,message, strlen(message));
     }
     printf("YAYAAYAY\n");
-}
+} */
 
 //TODO
 void retrieve(char *buffer)
@@ -477,7 +559,7 @@ void retrieve(char *buffer)
     snprintf(message, 19, "RTV %s %s %s\n", user.uid, user.gid, mid);
     printf("%s", message);
 
-    tcp_send(DSIP, DSport, message, strlen(message));
+    tcp_send(DSIP, DSport, message, strlen(message), NULL);
 }
 
 void init()
@@ -514,12 +596,12 @@ void init()
         fprintf(stderr, "Regular expression for mid compilation failed!");
         exit(1);
     }
-    if (regcomp(&reg_text, "^.{1,240}$", REG_EXTENDED) != 0)
+    if (regcomp(&reg_text, "^\"[^\"]{1,240}\"$", REG_EXTENDED) != 0)
     {
         fprintf(stderr, "Regular expression for text compilation failed!");
         exit(1);
     }
-    if (regcomp(&reg_fname, "^[0-9a-zA-Z_.-]{1,20}\\.[a-z]{3}$", REG_EXTENDED) != 0)
+    if (regcomp(&reg_file, "^\"[^\"]{1,240}\" [0-9a-zA-Z_.-]{1,20}\\.[a-z]{3}$", REG_EXTENDED) != 0)
     {
         fprintf(stderr, "Regular expression for fname compilation failed!");
         exit(1);
@@ -621,8 +703,8 @@ int main(int argc, char *argv[])
         }
         //*Send a messge to group
         else if (strcmp(cmd, "post") == 0)
-        {
-            post(buffer);
+        {     
+            post();
         }
         //*Retrieve messages from group
         else if (strcmp(cmd, "r") == 0 || strcmp(cmd, "retrieve") == 0)
@@ -641,7 +723,7 @@ int main(int argc, char *argv[])
     regfree(&reg_gname);
     regfree(&reg_mid);
     regfree(&reg_text);
-    regfree(&reg_fname);
+    regfree(&reg_file);
 
     exit(0);
 }

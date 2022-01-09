@@ -50,7 +50,7 @@ int check_pass(const char* uid, const char* pass)
 
     if (fgets(buffer, sizeof(buffer), f) == NULL)
     {
-        fprintf(stderr, "[!]Reading user(%s) password: %s\n", uid, strerror(errno));
+        fprintf(stderr, "[!]Reading user(%s) password\n", uid);
         fclose(f);
         return NOK;
     }
