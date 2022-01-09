@@ -63,7 +63,6 @@ void reg(char *buffer)
     udp_send(DSIP, DSport, message, strlen(message));
 }
 
-
 //* Unregister user
 void unr(char *buffer)
 {
@@ -93,7 +92,6 @@ void unr(char *buffer)
 
     udp_send(DSIP, DSport, message, strlen(message));
 }
-
 
 //* Login user
 void login(char *buffer)
@@ -137,13 +135,12 @@ void login(char *buffer)
     }
 }
 
-
 //* Logout user
 void logout()
 {
     char message[20];
 
-    //* Check if there is no login 
+    //* Check if there is no login
     if (user.logged == false)
     {
         fprintf(stderr, "[!]No user logged in\n");
@@ -161,10 +158,9 @@ void logout()
     }
 }
 
-
 //* Show the current user id
 void showuid()
-{   
+{
     //* Check if there is no login
     if (user.logged == false)
     {
@@ -174,7 +170,6 @@ void showuid()
 
     printf("[-]Current user ID: %s\n", user.uid);
 }
-
 
 //* Show all groups
 void groups()
@@ -186,10 +181,9 @@ void groups()
     udp_send(DSIP, DSport, message, strlen(message));
 }
 
-
 //* Enter/Create a group
 void subscribe(char *buffer)
-{   
+{
     char *gid, *gname, *end;
     char message[38];
 
@@ -224,7 +218,6 @@ void subscribe(char *buffer)
     udp_send(DSIP, DSport, message, strlen(message));
 }
 
-
 //* Leave a group
 void unsubscribe(char *buffer)
 {
@@ -257,7 +250,6 @@ void unsubscribe(char *buffer)
     udp_send(DSIP, DSport, message, strlen(message));
 }
 
-
 //* Show groups the current user is subscribed
 void my_groups()
 {
@@ -274,7 +266,6 @@ void my_groups()
 
     udp_send(DSIP, DSport, message, strlen(message));
 }
-
 
 //* Select group
 void sag(char *buffer)
@@ -304,10 +295,9 @@ void sag(char *buffer)
     snprintf(user.gid, 3, "%s", gid);
 }
 
-
 //* Show current selected group
 void showgid()
-{   
+{
     //* Check if no user is logged in
     if (user.logged == false)
     {
@@ -324,7 +314,6 @@ void showgid()
 
     printf("[-]Selected group ID: %s\n", user.gid);
 }
-
 
 //* Show all users of current selected group
 void ulist()
@@ -350,23 +339,21 @@ void ulist()
     tcp_send(DSIP, DSport, message, strlen(message), NULL);
 }
 
-//TODO
+//* Send a message to the current group
 void post()
-{   
-    //. post "text" [fname]
-
+{
     char *str, *text, *filename, *end;
     char message[512];
 
-    /* // Check if there is no login
+    //* Check if there is no login
     if (user.logged == false)
     {
         fprintf(stderr, "[!]No user logged in\n");
         return;
-    } */
+    }
 
     //* Get rest of the command
-    if ((str = strtok(NULL, "\\0")) == NULL)
+    if ((str = strtok(NULL, "\0")) == NULL)
     {
         arguments_error();
         return;
@@ -382,7 +369,7 @@ void post()
         }
     }
     //* If its text and file
-    else if(regexec(&reg_file, str, 0, NULL, 0) == 0)
+    else if (regexec(&reg_file, str, 0, NULL, 0) == 0)
     {
         if ((text = strtok(str, "\"")) == NULL || (filename = strtok(NULL, "\0")) == NULL || (end = strtok(NULL, "\0")) != NULL)
         {
@@ -394,140 +381,21 @@ void post()
     }
     else
     {
-        fprintf(stderr, "[!]Wrong format for post, check arguments\n");;
+        fprintf(stderr, "[!]Wrong format for post, check arguments\n");
+        ;
         return;
     }
 
     sprintf(message, "PST %s %s %ld %s", user.uid, user.gid, strlen(text), text);
-    if(filename == NULL)
-    {   
+    if (filename == NULL)
+    {
         tcp_send(DSIP, DSport, message, strlen(message), NULL);
     }
     else
     {
         tcp_send(DSIP, DSport, message, strlen(message), filename);
     }
-/*
-
-        while (fgets(array, 1024, fp) != NULL)
-        {
-            strncat(data, array, strlen(array));
-            bzero(array, 1024);
-        }
-        //    18 + len  |  len fname + 10 + len data
-        snprintf(message, 28 + strlen(text) + strlen(fName) + strlen(data), "PST %s %s %ld %s %s %ld %s\n", user.uid, user.gid, strlen(text), text, fName);
-        printf("%ld\n", strlen(data));
-        //printf("uno %s\n", message);
-
-    }
-    else
-    {
-
-        // 4   6  3  4  240 +1
-        snprintf(message, 18 + strlen(text), "PST %s %s %ld %s\n", user.uid, user.gid, strlen(text), text);
-        printf("dos %s\n", message);
-    }
-
-    //tcp_send(DSIP,DSport,message, strlen(message));
-    printf("YAYAAYAY\n"); */
 }
-
-
-/* void post(char *buffer)
-{   
-    //char message[TSIZE], *fName;
-    char message[270], *text, *fName;
-    FILE *fp;
-
-    if (user.logged == false)
-    {
-        fprintf(stderr, "No user logged in!\n");
-        return;
-    }
-    if (regexec(&reg_gid, user.gid, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "No group selected!\n");
-        return;
-    }
-    if (strncmp(buffer + 5, "\"", 1) != 0)
-    {
-        fprintf(stderr, "Must have text delimited by \"\"\n");
-        return;
-    }
-
-
-    text = strtok(NULL, "\"");
-    printf("texto ->> %s\n", text);
-
-    if (strlen(text) > 240)
-    {
-        fprintf(stderr, "Text over characters limit!\n");
-        return;
-    }
-    if (regexec(&reg_text, text, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "Invalid character in text\n");
-        return;
-    }
-
-    if ((fName = strtok(NULL, " ")) != NULL)
-    {
-
-        if (regexec(&reg_fname, fName, 0, NULL, 0) != 0)
-        {
-            fprintf(stderr, "Invalid file name\n");
-            return;
-        }
-
-        printf("%s\n", fName);
-
-        fp = fopen(fName, "r");
-        if (fp == NULL)
-        {
-            fprintf(stderr, "Error opening file!\n");
-        }
-<<<<<<< HEAD
-                                //    18 + len  |  len fname + 10 + len data
-        snprintf(message, 28 + strlen(text) + strlen(fName), "PST %s %s %ld %s %s", user.uid, user.gid, strlen(text), text, fName);
-        
-        printf("uno %s\n", message);
-        tcp_send_file(DSIP,DSport,message, strlen(message));
-=======
-
-        while (fgets(array, 1024, fp) != NULL)
-        {
-            strncat(data, array, strlen(array));
-            bzero(array, 1024);
-        }
-        //    18 + len  |  len fname + 10 + len data
-        snprintf(message, 28 + strlen(text) + strlen(fName) + strlen(data), "PST %s %s %ld %s %s %ld %s\n", user.uid, user.gid, strlen(text), text, fName);
-        printf("%ld\n", strlen(data));
-        //printf("uno %s\n", message);
->>>>>>> 394834603708b3740636742cf575fd96b32d26c2
-
-        //meter cenas a enviar
-    }
-    else
-<<<<<<< Updated upstream
-=======
-<<<<<<< HEAD
-    {    
-        
-                              // 4   6  3  4  240 +1
-        snprintf(message, 18 + strlen(text), "PST %s %s %ld %s ", user.uid, user.gid, strlen(text), text);
-        
-=======
->>>>>>> Stashed changes
-    {
-
-        // 4   6  3  4  240 +1
-        snprintf(message, 18 + strlen(text), "PST %s %s %ld %s\n", user.uid, user.gid, strlen(text), text);
->>>>>>> 394834603708b3740636742cf575fd96b32d26c2
-        printf("dos %s\n", message);
-        tcp_send(DSIP,DSport,message, strlen(message));
-    }
-    printf("YAYAAYAY\n");
-} */
 
 //TODO
 void retrieve(char *buffer)
@@ -601,7 +469,7 @@ void init()
         fprintf(stderr, "Regular expression for text compilation failed!");
         exit(1);
     }
-    if (regcomp(&reg_file, "^\"[^\"]{1,240}\" [0-9a-zA-Z_.-]{1,20}\\.[a-z]{3}$", REG_EXTENDED) != 0)
+    if (regcomp(&reg_file, "^\"[^\"]{1,240}\" [0-9a-zA-Z_.-]{1,20}\\.[0-9a-z]{3}$", REG_EXTENDED) != 0)
     {
         fprintf(stderr, "Regular expression for fname compilation failed!");
         exit(1);
@@ -703,7 +571,7 @@ int main(int argc, char *argv[])
         }
         //*Send a messge to group
         else if (strcmp(cmd, "post") == 0)
-        {     
+        {
             post();
         }
         //*Retrieve messages from group

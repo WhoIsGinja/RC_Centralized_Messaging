@@ -15,33 +15,6 @@
 int fd;
 char buffer[128];
 
-int digits_only(const char *s)
-{
-	while (*s)
-	{
-		if (isdigit(*s++) == 0)
-			return 0;
-	}
-
-	return 1;
-}
-
-int parse_status(const char *status)
-{
-
-	if (strncmp(status, "OK", 2) == 0)
-	{
-		return OK;
-	}
-	else if (strncmp(status, "NOK", 3) == 0)
-	{
-		return NOK;
-	}
-	else
-	{
-		return -1;
-	}
-}
 
 //*UDP transmissions
 int send_message_udp(const char *ds_ip, const char *ds_port, const char *message, int size)
@@ -78,16 +51,17 @@ int send_message_udp(const char *ds_ip, const char *ds_port, const char *message
 	return OK;
 }
 
+
 int receive_message_udp()
 {
 	socklen_t addrlen;
 	struct sockaddr_in addr;
-	char buffer[BUFFER];
-	char buf[3];
-	char *token;
-	int j, i, count;
-	addrlen = sizeof(addr);
 	ssize_t n;
+	char *rcmd, *gid, *gname, *mid;
+	int status, i;
+	char buffer[4096];
+
+	addrlen = sizeof(addr);
 
 	n = recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr *)&addr, &addrlen);
 	if (n == -1)
@@ -95,43 +69,39 @@ int receive_message_udp()
 		fprintf(stderr, "Error receiving from server\n");
 		return NOK;
 	}
-	//FIXME this is an optimistc approach, i.e. the server respects protocol
-	//TODO verify everything
-	if (strncmp(buffer, "RGL", 3) == 0 || strncmp(buffer, "RGM", 3) == 0)
+
+	buffer[n-1] = '\0';
+
+	rcmd = strtok(buffer, " ");
+
+	//TODO verify everything ????
+	if (strcmp(rcmd, "RGL") == 0 || strcmp(rcmd, "RGM") == 0)
 	{
-		snprintf(buf, 3, "%s\n", buffer + 4);
-		j = atoi(buf);
-		token = strtok(buffer + 6, " ");
-		for (i = 1; i < j; i++)
+		i = atoi(strtok(NULL, " "));
+
+		for (; i >0; i--)
 		{
-			count = 2;
-			while (count > 0)
-			{
-				printf("%s ", token);
-				token = strtok(NULL, " ");
-				count--;
-			}
-			token = strtok(NULL, " ");
-			printf("\n");
+			gid = strtok(NULL, " ");
+			gname = strtok(NULL, " ");
+			mid = strtok(NULL, " ");
+			
+			printf("%s: %s (%s)\n", gid, gname, mid);
 		}
-		count = 2;
-		while (count > 0)
-		{
-			printf("%s ", token);
-			token = strtok(NULL, " ");
-			count--;
-		}
-		printf("\n");
-		//printf("display groups or my_groups response\n");
 	}
 	else
-	{
-		write(1, buffer, n);
-		return parse_status(buffer + 4);
+	{	
+		status = istatus(strtok(NULL, " "));
+		if(status == NEW)
+		{
+			return atoi(strtok(NULL, " "));
+		}
+		
+		return status;
 	}
 
 	return OK;
 }
+
 
 int udp_send(const char *ds_ip, const char *ds_port, char *message, int size)
 {
@@ -149,12 +119,13 @@ int udp_send(const char *ds_ip, const char *ds_port, char *message, int size)
 	return status;
 }
 
+
 //*TCP transmissions
-/*WIP*/
 int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int size, char *filename)
 {
 	struct addrinfo hints, *res;
-	int n, errcode, fsize;
+	int n, errcode;
+	unsigned long long fsize;
 	FILE *f;
 	char buffer[1024];
 
@@ -203,39 +174,38 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 		fsize = ftell(f);
 		rewind(f);
 
+		//* Ch
+		sprintf(buffer, "%011lld", fsize);
+		if (buffer[0] != '0')
+		{
+			fprintf(stderr, "[!]File size too big\n");
+			return NOK;
+		}
+
 		//TODO(Ramalho)verificar fsize
-		sprintf(buffer, " %s %d ", filename, fsize);
+		sprintf(buffer, " %s %lld ", filename, fsize);
 		if ((n = write(fd, buffer, strlen(buffer)) == -1))
 		{
 			fprintf(stderr, "Error sending to server\n");
 			return NOK;
 		}
 
-		bzero(buffer, sizeof(buffer));
-
 		n = fread(buffer, 1, sizeof(buffer), f);
-
 		if ((n = write(fd, buffer, n) == -1))
 		{
 			fprintf(stderr, "Error sending to server\n");
 			return NOK;
 		}
 
-		while(!feof(f))
-		{	
-			bzero(buffer, sizeof(buffer));
-			
+		while (!feof(f))
+		{
 			n = fread(buffer, 1, sizeof(buffer), f);
-
 			if ((n = write(fd, buffer, n) == -1))
 			{
 				fprintf(stderr, "Error sending to server\n");
 				return NOK;
 			}
-
 		}
-
-		
 
 		fclose(f);
 	}
@@ -249,60 +219,59 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 	return OK;
 }
 
-	/*copied, needs adjustments*/
-	int receive_message_tcp()
-	{
-		int n; // offset, jump = 6;
-		char buffer[128], *token;
-		//char end[6];
 
-		if ((n = read(fd, buffer, 128)) == -1)
+int receive_message_tcp()
+{
+	int n;
+	char buffer[128], *token;
+
+	if ((n = read(fd, buffer, 128)) == -1)
+	{
+		fprintf(stderr, "Error receiving from server\n");
+		return NOK;
+	}
+
+	if (strncmp(buffer, "RUL", 3) == 0)
+	{
+		token = strtok(buffer, " ");
+		token = strtok(NULL, " ");
+		if (strncmp(token, "NOK", 3) == 0)
 		{
-			fprintf(stderr, "Error receiving from server\n");
+			fprintf(stderr, "Group does not exist\n");
 			return NOK;
 		}
 
-		if (strncmp(buffer, "RUL", 3) == 0)
+		token = strtok(NULL, " ");
+		memset(buffer, 0, 128);
+		while ((n = read(fd, buffer, 128)) > 0)
 		{
 			token = strtok(buffer, " ");
-			token = strtok(NULL, " ");
-			if (strncmp(token, "NOK", 3) == 0)
+			while (token != NULL)
 			{
-				fprintf(stderr, "Group does not exist\n");
-				return NOK;
+				printf("%s\n", token);
+				token = strtok(NULL, " ");
 			}
 
-			token = strtok(NULL, " ");
 			memset(buffer, 0, 128);
-			while ((n = read(fd, buffer, 128)) > 0)
-			{
-				token = strtok(buffer, " ");
-				while (token != NULL)
-				{
-					printf("%s\n", token);
-					token = strtok(NULL, " ");
-				}
-
-				memset(buffer, 0, 128);
-			}
 		}
-
-		return OK;
 	}
 
-	//TODO replicate similar UDP functions for TCP operations
-	int tcp_send(const char *ds_ip, const char *ds_port, char *message, int size, char *filename)
+	return OK;
+}
+
+
+int tcp_send(const char *ds_ip, const char *ds_port, char *message, int size, char *filename)
+{
+	int status;
+
+	if (send_message_tcp(ds_ip, ds_port, message, size, filename) == NOK)
 	{
-		int status;
-
-		if (send_message_tcp(ds_ip, ds_port, message, size, filename) == NOK)
-		{
-			close(fd);
-			return NOK;
-		}
-
-		status = receive_message_tcp();
 		close(fd);
-
-		return status;
+		return NOK;
 	}
+
+	status = receive_message_tcp();
+	close(fd);
+
+	return status;
+}
