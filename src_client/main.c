@@ -34,7 +34,7 @@ void arguments_error()
 }
 
 //* Register user
-void reg(char *buffer)
+void reg()
 {
     char *uid, *pass, *end;
     char message[20];
@@ -64,7 +64,7 @@ void reg(char *buffer)
 }
 
 //* Unregister user
-void unr(char *buffer)
+void unr()
 {
     char *uid, *pass, *end;
     char message[20];
@@ -94,7 +94,7 @@ void unr(char *buffer)
 }
 
 //* Login user
-void login(char *buffer)
+void login()
 {
     char *uid, *pass, *end;
     char message[20];
@@ -182,7 +182,7 @@ void groups()
 }
 
 //* Enter/Create a group
-void subscribe(char *buffer)
+void subscribe()
 {
     char *gid, *gname, *end;
     char message[38];
@@ -219,7 +219,7 @@ void subscribe(char *buffer)
 }
 
 //* Leave a group
-void unsubscribe(char *buffer)
+void unsubscribe()
 {
     char *gid, *end;
     char message[16];
@@ -268,7 +268,7 @@ void my_groups()
 }
 
 //* Select group
-void sag(char *buffer)
+void sag()
 {
     char *gid, *end;
 
@@ -398,7 +398,7 @@ void post()
 }
 
 //TODO
-void retrieve(char *buffer)
+void retrieve()
 {
     char message[19];
     char *mid;
@@ -430,6 +430,7 @@ void retrieve(char *buffer)
     tcp_send(DSIP, DSport, message, strlen(message), NULL);
 }
 
+//* Initialize client
 void init()
 {
     //*Initialize local user
@@ -476,6 +477,7 @@ void init()
     }
 }
 
+
 int main(int argc, char *argv[])
 {
     char buffer[512];
@@ -507,17 +509,17 @@ int main(int argc, char *argv[])
         //*Register user
         if (strcmp(cmd, "reg") == 0)
         {
-            reg(buffer);
+            reg();
         }
         //*Unregister user
         else if (strcmp(cmd, "unr") == 0 || strcmp(cmd, "unregister") == 0)
         {
-            unr(buffer);
+            unr();
         }
         //*Login
         else if (strcmp(cmd, "login") == 0)
         {
-            login(buffer);
+            login();
         }
         //*Logout
         else if (strcmp(cmd, "logout") == 0)
@@ -542,12 +544,12 @@ int main(int argc, char *argv[])
         //*Enter/Create a group
         else if (strcmp(cmd, "s") == 0 || strcmp(cmd, "subscribe") == 0)
         {
-            subscribe(buffer);
+            subscribe();
         }
         //*Leave a group
         else if (strcmp(cmd, "u") == 0 || strcmp(cmd, "unsubscribe") == 0)
         {
-            unsubscribe(buffer);
+            unsubscribe();
         }
         //*Show all the groups that the user is in
         else if (strcmp(cmd, "mgl") == 0 || strcmp(cmd, "my_groups") == 0)
@@ -557,7 +559,7 @@ int main(int argc, char *argv[])
         //*Select a group
         else if (strcmp(cmd, "sag") == 0 || strcmp(cmd, "select") == 0)
         {
-            sag(buffer);
+            sag();
         }
         //*Show current group id
         else if (strcmp(cmd, "sg") == 0 || strcmp(cmd, "showgid") == 0)
@@ -567,7 +569,7 @@ int main(int argc, char *argv[])
         //*Show all user of the selected group
         else if (strcmp(cmd, "ul") == 0 || strcmp(cmd, "ulist") == 0)
         {
-            ulist(buffer);
+            ulist();
         }
         //*Send a messge to group
         else if (strcmp(cmd, "post") == 0)
@@ -577,11 +579,11 @@ int main(int argc, char *argv[])
         //*Retrieve messages from group
         else if (strcmp(cmd, "r") == 0 || strcmp(cmd, "retrieve") == 0)
         {
-            retrieve(buffer);
+            retrieve();
         }
         else
         {
-            fprintf(stderr, "Command \"%s\" doesn't exist.\n", cmd);
+            fprintf(stderr, "[!]Command \"%s\" doesn't exist.\n", cmd);
         }
     }
 
