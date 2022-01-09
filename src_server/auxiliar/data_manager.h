@@ -15,5 +15,6 @@ int user_logged(const char* uid);
 //*Groups Management
 int group_create(const char* uid, const char* gname);
 int group_add(const char* uid, const char* gid, const char* gname);
+int groups_get(char** glist, const char* uid);
 
 #endif

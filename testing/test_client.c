@@ -9,9 +9,31 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <regex.h>
+#include <dirent.h>
 #include "../protocol_constants.h"
 
 int fd;
+
+bool regex_test(const char *rule, const char *str)
+{
+	regex_t reg;
+
+	if (regcomp(&reg, rule, REG_EXTENDED) != 0)
+	{
+		fprintf(stderr, "[!]Regular expression compilation failed.");
+		exit(1);
+	}
+
+	if (regexec(&reg, str, 0, NULL, 0) == 0)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
 
 //*UDP transmissions
 
@@ -166,13 +188,15 @@ int main(int argc, char *argv[])
 	char buffer[128];
 	char DSIP[128];
 	char DSport[128];
+	int n;
+	struct dirent **groups;
 
 	setvbuf(stdout, NULL, _IONBF, 0);
 
 	if (argc > 1 && argv[1][0] == 'm')
 	{
-		strcpy(DSIP,"DESKTOP-HPQ1DJ7");
-    	strcpy(DSport,"58005");
+		strcpy(DSIP, "DESKTOP-HPQ1DJ7");
+		strcpy(DSport, "58005");
 	}
 	else
 	{
@@ -185,7 +209,8 @@ int main(int argc, char *argv[])
 		system("clear");
 		printf("Commands:\n[?]U REG UID PASS\n[?]U UNR UID PASS\n[?]U LOG UID PASS\n[?]U OUT UID PASS\n[?]U GLS\n[?]U GSR UID GID GName\n[?]U GUR UID GID\n[?]U GLM UID\n[?]T ULS GID\n[?]T PST UID GID Tsize text [Fname Fsize data]\n[?]T RTV UID GID MID\n\n[?]");
 		fgets(buffer, sizeof(buffer), stdin);
-		printf("\n[+]%s[-]", buffer);
+		buffer[strlen(buffer) - 1] = 0;
+		printf("\n[+]%s\n[-]", buffer);
 		//*Register user
 		if (buffer[0] == 'U')
 		{
@@ -198,6 +223,16 @@ int main(int argc, char *argv[])
 		}
 
 		printf("\n...");
+
+		//printf("test: %s\n", regex_test("^REG [[:digit:]]{5} [[:alnum:]]{8}$", buffer)? "true" : "false");
+
+		if ((n = scandir(".", &groups, NULL, alphasort)) == -1)
+		{
+			fprintf(stderr, "[!]Getting groups\n");
+		}
+		while(n--)
+		printf("%s\n", groups[n]->d_name);
+
 		fgets(buffer, sizeof(buffer), stdin);
 	}
 

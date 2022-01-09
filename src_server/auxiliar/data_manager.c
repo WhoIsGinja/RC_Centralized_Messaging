@@ -6,12 +6,12 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdbool.h>
 #include "data_manager.h"
 #include "../../protocol_constants.h"
 
 #define USERS "data_server/USERS"
 #define GROUPS "data_server/GROUPS"
-
 
 void init_server_data()
 {
@@ -34,12 +34,11 @@ void init_server_data()
     }
 }
 
-
 //* User Management
-int check_pass(const char* uid, const char* pass)
+int check_pass(const char *uid, const char *pass)
 {
     char buffer[40];
-    FILE* f = NULL;
+    FILE *f = NULL;
 
     sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
     if ((f = fopen(buffer, "r")) == NULL)
@@ -64,11 +63,10 @@ int check_pass(const char* uid, const char* pass)
     return OK;
 }
 
-
-int user_create(const char* uid, const char* pass)
+int user_create(const char *uid, const char *pass)
 {
     char buffer[40];
-    FILE* f = NULL;
+    FILE *f = NULL;
 
     // *Create user directory
     sprintf(buffer, "%s/%s", USERS, uid);
@@ -102,7 +100,7 @@ int user_create(const char* uid, const char* pass)
 
     //* Write password
     if (fputs(pass, f) == EOF)
-    {   
+    {
         fclose(f);
 
         fprintf(stderr, "[!]Saving user(%s) password\n", uid);
@@ -131,8 +129,7 @@ int user_create(const char* uid, const char* pass)
     return OK;
 }
 
-
-int user_delete(const char* uid, const char* pass)
+int user_delete(const char *uid, const char *pass)
 {
     char buffer[41];
 
@@ -168,8 +165,7 @@ int user_delete(const char* uid, const char* pass)
     return OK;
 }
 
-
-int user_entry(const char* uid, const char* pass, bool login)
+int user_entry(const char *uid, const char *pass, bool login)
 {
     char buffer[41];
     FILE *f = NULL;
@@ -201,16 +197,14 @@ int user_entry(const char* uid, const char* pass, bool login)
     return OK;
 }
 
-
-int user_logged(const char* uid)
+int user_logged(const char *uid)
 {
     char buffer[41];
-    FILE* f = NULL;
 
     sprintf(buffer, "%s/%s/%s_login.txt", USERS, uid, uid);
-    if ((f = fopen(buffer, "r")) == NULL )
-    {   
-        if(errno != ENOENT)
+    if (access(buffer, F_OK) != 0)
+    {
+        if (errno != ENOENT)
         {
             fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
         }
@@ -220,12 +214,11 @@ int user_logged(const char* uid)
     return OK;
 }
 
-
 //* Groups Management
-int group_create(const char* uid, const char* gname)
+int group_create(const char *uid, const char *gname)
 {
-    DIR*  d;
-    FILE* f;
+    DIR *d;
+    FILE *f;
     char buffer[34];
     int gnum, status;
 
@@ -236,15 +229,12 @@ int group_create(const char* uid, const char* gname)
     }
 
     //* Number of groups
-    for (gnum = -1; readdir(d) != NULL; gnum++);
-    /* if(errno != 0)
-    {
-        fprintf(stderr, "[!]Getting number of groups: %s\n", strerror(errno));
-        return NOK;
-    } */
+    for (gnum = -1; readdir(d) != NULL; gnum++)
+        ;
+
     closedir(d);
 
-    if(gnum == 99)
+    if (gnum >= 99)
     {
         fprintf(stderr, "[!]Group directory full");
         return E_FULL;
@@ -257,11 +247,11 @@ int group_create(const char* uid, const char* gname)
         fprintf(stderr, "[!]Creating group directory: %s\n", strerror(errno));
         return NOK;
     }
-    
+
     //* Create message directory
     sprintf(buffer, "%s/%02d/MSG", GROUPS, gnum);
     if (mkdir(buffer, S_IRWXU) == -1)
-    {   
+    {
         fprintf(stderr, "[!]Creating messages directory: %s\n", strerror(errno));
 
         //* Delete group directory
@@ -336,7 +326,7 @@ int group_create(const char* uid, const char* gname)
 
     //* Add user to created group
     sprintf(buffer, "%02d", gnum);
-    if((status = group_add(uid, buffer, gname)) != OK)
+    if ((status = group_add(uid, buffer, gname)) != OK)
     {
         return status;
     }
@@ -344,11 +334,10 @@ int group_create(const char* uid, const char* gname)
     return NEW + gnum;
 }
 
-
-int group_add(const char* uid, const char* gid, const char* gname)
+int group_add(const char *uid, const char *gid, const char *gname)
 {
-    DIR* d;
-    FILE* f;
+    DIR *d;
+    FILE *f;
     char dir[22];
     char file[34];
     char name[24];
@@ -393,57 +382,139 @@ int group_add(const char* uid, const char* gid, const char* gname)
     return OK;
 }
 
-/* int create_dir(const char* dir)
+int groups_get(char **glist, const char *uid)
 {
-    if(mkdir(dir, S_IRWXU) == -1)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(errno));
-        return NOK;
-    }
-
-    return OK;
-}
-
-int delete_dir(const char* dir)
-{
-    if(remove(dir) == -1)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(errno));
-        return NOK;
-    }
-
-    return OK;
-}
-
-
-//Files Management
-int write_file(const char* file, const char* content)
-{   
+    struct dirent **groups;
+    struct dirent **msgs;
     FILE* f;
-
-    if((f = fopen(file, "w+")) == NULL)
+    int i, gnum, mnum, gcount;
+    char buffer[64];
+    char gname[25];
+    
+    if ((gnum = scandir(GROUPS, &groups, NULL, alphasort)) == -1)
     {
-        fprintf(stderr, "Error: %s\n", strerror(errno));
+        fprintf(stderr, "[!]Getting groups: %s\n", strerror(errno));
         return NOK;
     }
 
-    if(content != NULL)
+    //* Take into account . and ..
+    if (gnum - 2 == 0)
     {
-        fputs(content, f);
+        *glist = NULL;
+        free(groups);
+        return OK;
     }
 
-    fclose(f);
+    //* Allocate memory for list
+    if ((*glist = (char*) calloc(4096, sizeof(char))) == NULL)
+    {
+        fprintf(stderr, "[!]Allocating memory for response\n");
+        free(groups);
+        return NOK;
+    }
+
+    gcount = 0;
+    //* Number of groups
+    for (i = 2; i < gnum; i++)
+    {
+        if (uid != NULL)
+        {
+            sprintf(buffer, "%s/%s/%s.txt", GROUPS, groups[i]->d_name, uid);
+            if (access(buffer, F_OK) != 0)
+            {
+                if (errno != ENOENT)
+                {
+                    fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
+                    free(groups);
+                    free(*glist);
+                    return NOK;
+                }
+                
+                continue;
+            }
+        }
+        gcount++;
+    }
+
+    if(uid == NULL)
+    {
+        sprintf(buffer, "RGL %d", gcount);
+        strcat(*glist, buffer);
+    }
+    else
+    {
+        sprintf(buffer, "RGM %d", gcount);
+        strcat(*glist, buffer);
+    }
+
+    //* Build list
+    for (i = 2; i < gnum; i++)
+    {   
+        //* If it's a user group
+        if (uid != NULL)
+        {
+            sprintf(buffer, "%s/%s/%s.txt", GROUPS, groups[i]->d_name, uid);
+            if (access(buffer, F_OK) != 0)
+            {
+                if (errno != ENOENT)
+                {
+                    fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
+                    free(groups);
+                    free(*glist);
+                    return NOK;
+                }
+                
+                continue;
+            }
+        }
+
+        //*Get group name
+        sprintf(buffer, "%s/%s/%s_name.txt", GROUPS, groups[i]->d_name, groups[i]->d_name);
+        if ((f = fopen(buffer, "r")) == NULL)
+        {
+            fprintf(stderr, "[!]Opening group name file: %s\n", strerror(errno));
+            free(groups);
+            free(*glist);
+            return NOK;
+        }
+
+        if (fgets(gname, sizeof(gname), f) == NULL)
+        {
+            fprintf(stderr, "[!]Reading group name\n");
+            free(groups);
+            free(*glist);
+            fclose(f);
+            return NOK;
+        }
+        fclose(f);
+
+        //*Get last MID
+        sprintf(buffer, "%s/%s/MSG", GROUPS, groups[i]->d_name);
+        if ((mnum = scandir(buffer, &msgs, NULL, alphasort)) == -1)
+        {
+            fprintf(stderr, "[!]Getting groups: %s\n", strerror(errno));
+            free(groups);
+            free(*glist);
+            return NOK;
+        }
+
+        if (mnum - 2 == 0)
+        {
+            sprintf(buffer, " %s %s 0000", groups[i]->d_name, gname);
+        }
+        else
+        {
+            sprintf(buffer, " %s %s %s", groups[i]->d_name, gname, msgs[mnum - 1]->d_name);
+        }
+        free(msgs);
+
+        strcat(*glist, buffer);
+    } 
+    free(groups);
+
+    strcat(*glist, "\n");
 
     return OK;
 }
 
-int delete_file(const char* file)
-{
-    if(remove(file) == -1)
-    {
-        fprintf(stderr, "Error: %s\n", strerror(errno));
-        return NOK;
-    }
 
-    return OK;
-} */
