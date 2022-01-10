@@ -185,11 +185,11 @@ char *udp_commands(char *buffer, int n)
 	else if (regex_test("^GLS$", buffer))
 	{
 		status = ggroups(&groups, NULL);
-		if(status == OK)
-		{	
-			return groups;			
+		if (status == OK)
+		{
+			return groups;
 		}
-		else if(status == E_USR)
+		else if (status == E_USR)
 		{
 			sprintf(buffer, "RGL %s\n", strstatus(status));
 		}
@@ -200,14 +200,14 @@ char *udp_commands(char *buffer, int n)
 	}
 	//* User groups
 	else if (regex_test("^GLM [[:digit:]]{5}$", buffer))
-	{	
+	{
 		strtok(buffer, " ");
 		status = ggroups(&groups, strtok(NULL, " "));
-		if(status == OK)
-		{	
-			return groups;			
+		if (status == OK)
+		{
+			return groups;
 		}
-		else if(status == E_USR)
+		else if (status == E_USR)
 		{
 			sprintf(buffer, "RGM %s\n", strstatus(status));
 		}
@@ -218,7 +218,7 @@ char *udp_commands(char *buffer, int n)
 	}
 	else
 	{
-		sprintf(buffer,"%s\n", istatus(ERR));
+		sprintf(buffer, "%s\n", strstatus(ERR));
 	}
 
 	return buffer;

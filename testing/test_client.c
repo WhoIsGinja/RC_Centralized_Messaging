@@ -224,14 +224,14 @@ int main(int argc, char *argv[])
 
 		printf("\n...");
 
-		//printf("test: %s\n", regex_test("^REG [[:digit:]]{5} [[:alnum:]]{8}$", buffer)? "true" : "false");
+		//printf("test: %s\n", regex_test("^post \"[^\"]{1,240}\"( [[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3})?$", buffer)? "true" : "false");
 
-		if ((n = scandir(".", &groups, NULL, alphasort)) == -1)
+		/* if ((n = scandir(".", &groups, NULL, alphasort)) == -1)
 		{
 			fprintf(stderr, "[!]Getting groups\n");
 		}
 		while(n--)
-		printf("%s\n", groups[n]->d_name);
+		printf("%s\n", groups[n]->d_name); */
 
 		fgets(buffer, sizeof(buffer), stdin);
 	}

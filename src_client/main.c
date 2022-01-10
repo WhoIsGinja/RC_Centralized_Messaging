@@ -8,13 +8,10 @@
 #include "auxiliar/connection_manager.h"
 #include "../protocol_constants.h"
 
-regex_t reg_uid;
-regex_t reg_pass;
-regex_t reg_gid;
-regex_t reg_gname;
-regex_t reg_mid;
-regex_t reg_text;
-regex_t reg_file;
+#define MESSAGE_SIZE 64
+#define POST_SIZE 512
+#define IP_SIZE 128
+#define PORT_SIZE 16
 
 struct user_info
 {
@@ -25,40 +22,42 @@ struct user_info
 };
 
 struct user_info user;
-char DSIP[128];
-char DSport[6];
+char DSIP[IP_SIZE];
+char DSport[PORT_SIZE];
 
-void arguments_error()
+
+//* Test str with rule
+bool regex_test(const char *rule, const char *str)
 {
-    fprintf(stderr, "[!]Wrong number of arguments\n");
+	regex_t reg;
+
+	if (regcomp(&reg, rule, REG_EXTENDED | REG_NOSUB) != 0)
+	{
+		fprintf(stderr, "[!]Regular expression compilation failed.");
+		exit(1);
+	}
+
+	if (regexec(&reg, str, 0, NULL, 0) == 0)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
+
 
 //* Register user
 void reg()
 {
-    char *uid, *pass, *end;
-    char message[20];
+    char *uid, *pass;
+    char message[MESSAGE_SIZE];
+    
+    uid = strtok(NULL, " ");
+    pass = strtok(NULL, " ");
 
-    //*Get uid and password
-    if ((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL || (end = strtok(NULL, " ")) != NULL)
-    {
-        arguments_error();
-        return;
-    }
-
-    //*Check uid and pass format
-    if (regexec(&reg_uid, uid, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]UID has to be 5 numeric characters\n");
-        return;
-    }
-    if (regexec(&reg_pass, pass, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]Password has to be 8 alphanumeric characters\n");
-        return;
-    }
-
-    snprintf(message, 20, "REG %s %s\n", uid, pass);
+    sprintf(message, "REG %s %s\n", uid, pass);
 
     udp_send(DSIP, DSport, message, strlen(message));
 }
@@ -66,29 +65,13 @@ void reg()
 //* Unregister user
 void unr()
 {
-    char *uid, *pass, *end;
-    char message[20];
+    char *uid, *pass;
+    char message[MESSAGE_SIZE];
 
-    //*Get uid and password
-    if ((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL || (end = strtok(NULL, " ")) != NULL)
-    {
-        arguments_error();
-        return;
-    }
+    uid = strtok(NULL, " ");
+    pass = strtok(NULL, " ");
 
-    //*Check uid and pass format
-    if (regexec(&reg_uid, uid, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]UID has to be 5 numeric characters\n");
-        return;
-    }
-    if (regexec(&reg_pass, pass, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]Password has to be 8 alphanumeric characters\n");
-        return;
-    }
-
-    snprintf(message, 20, "UNR %s %s\n", uid, pass);
+    sprintf(message, "UNR %s %s\n", uid, pass);
 
     udp_send(DSIP, DSport, message, strlen(message));
 }
@@ -96,8 +79,8 @@ void unr()
 //* Login user
 void login()
 {
-    char *uid, *pass, *end;
-    char message[20];
+    char *uid, *pass;
+    char message[MESSAGE_SIZE];
 
     //*Check if there is already a log in
     if (user.logged == true)
@@ -106,26 +89,10 @@ void login()
         return;
     }
 
-    //*Get uid and password
-    if ((uid = strtok(NULL, " ")) == NULL || (pass = strtok(NULL, " ")) == NULL || (end = strtok(NULL, " ")) != NULL)
-    {
-        arguments_error();
-        return;
-    }
+    uid = strtok(NULL, " ");
+    pass = strtok(NULL, " ");
 
-    //*Check uid and pass format
-    if (regexec(&reg_uid, uid, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]UID has to be 5 numeric characters\n");
-        return;
-    }
-    if (regexec(&reg_pass, pass, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]Password has to be 8 alphanumeric characters\n");
-        return;
-    }
-
-    snprintf(message, 20, "LOG %s %s\n", uid, pass);
+    sprintf(message, "LOG %s %s\n", uid, pass);
 
     if (udp_send(DSIP, DSport, message, strlen(message)) == OK)
     {
@@ -138,7 +105,7 @@ void login()
 //* Logout user
 void logout()
 {
-    char message[20];
+    char message[MESSAGE_SIZE];
 
     //* Check if there is no login
     if (user.logged == false)
@@ -147,7 +114,8 @@ void logout()
         return;
     }
 
-    snprintf(message, 20, "OUT %s %s\n", user.uid, user.pass);
+    sprintf(message, "OUT %s %s\n", user.uid, user.pass);
+
     if (udp_send(DSIP, DSport, message, strlen(message)) == OK)
     {
         //*Localy clean user info
@@ -174,7 +142,7 @@ void showuid()
 //* Show all groups
 void groups()
 {
-    char message[5];
+    char message[MESSAGE_SIZE];
 
     sprintf(message, "GLS\n");
 
@@ -184,8 +152,8 @@ void groups()
 //* Enter/Create a group
 void subscribe()
 {
-    char *gid, *gname, *end;
-    char message[38];
+    char *gid, *gname;
+    char message[MESSAGE_SIZE];
 
     //* Check if there is no login
     if (user.logged == false)
@@ -194,26 +162,10 @@ void subscribe()
         return;
     }
 
-    //* Get gid and gname
-    if ((gid = strtok(NULL, " ")) == NULL || (gname = strtok(NULL, " ")) == NULL || (end = strtok(NULL, " ")) != NULL)
-    {
-        arguments_error();
-        return;
-    }
+    gid = strtok(NULL, " ");
+    gname = strtok(NULL, " ");
 
-    //*Check gid and gname format
-    if (regexec(&reg_gid, gid, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]Gid has to be 2 numeric characters\n");
-        return;
-    }
-    if (regexec(&reg_gname, gname, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]Gname has to be up to 24 alphanumeric characters (plus '-' or '_'\n");
-        return;
-    }
-
-    snprintf(message, 38, "GSR %s %s %s\n", user.uid, gid, gname);
+    sprintf(message, "GSR %s %s %s\n", user.uid, gid, gname);
 
     udp_send(DSIP, DSport, message, strlen(message));
 }
@@ -221,8 +173,8 @@ void subscribe()
 //* Leave a group
 void unsubscribe()
 {
-    char *gid, *end;
-    char message[16];
+    char *gid;
+    char message[MESSAGE_SIZE];
 
     //* Check if no user if logged in
     if (user.logged == false)
@@ -231,21 +183,9 @@ void unsubscribe()
         return;
     }
 
-    //* Get gid
-    if ((gid = strtok(NULL, " ")) == NULL || (end = strtok(NULL, " ")) != NULL)
-    {
-        arguments_error();
-        return;
-    }
+    gid = strtok(NULL, " ");
 
-    //*Check gid format
-    if (regexec(&reg_gid, gid, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]Gid has to be 2 numeric characters\n");
-        return;
-    }
-
-    snprintf(message, 16, "GUR %s %s\n", user.uid, gid);
+    sprintf(message, "GUR %s %s\n", user.uid, gid);
 
     udp_send(DSIP, DSport, message, strlen(message));
 }
@@ -253,7 +193,7 @@ void unsubscribe()
 //* Show groups the current user is subscribed
 void my_groups()
 {
-    char message[11];
+    char message[MESSAGE_SIZE];
 
     //* Check if user no is logged in
     if (user.logged == false)
@@ -262,7 +202,7 @@ void my_groups()
         return;
     }
 
-    snprintf(message, 11, "GLM %s\n", user.uid);
+    sprintf(message, "GLM %s\n", user.uid);
 
     udp_send(DSIP, DSport, message, strlen(message));
 }
@@ -270,7 +210,7 @@ void my_groups()
 //* Select group
 void sag()
 {
-    char *gid, *end;
+    char *gid;
 
     //* Check if no user is logged in
     if (user.logged == false)
@@ -279,20 +219,9 @@ void sag()
         return;
     }
 
-    //* Get gid
-    if ((gid = strtok(NULL, " ")) == NULL || (end = strtok(NULL, " ")) != NULL)
-    {
-        arguments_error();
-        return;
-    }
-
-    if (regexec(&reg_gid, gid, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "[!]Gid has to be 2 numeric characters\n");
-        return;
-    }
-
-    snprintf(user.gid, 3, "%s", gid);
+    gid = strtok(NULL, " ");
+   
+    sprintf(user.gid, "%s", gid);
 }
 
 //* Show current selected group
@@ -301,7 +230,7 @@ void showgid()
     //* Check if no user is logged in
     if (user.logged == false)
     {
-        fprintf(stderr, "No user logged in!\n");
+        fprintf(stderr, "[!]No user logged in\n");
         return;
     }
 
@@ -318,7 +247,7 @@ void showgid()
 //* Show all users of current selected group
 void ulist()
 {
-    char message[8];
+    char message[MESSAGE_SIZE];
 
     //* Check if no user is logged in
     if (user.logged == false)
@@ -334,16 +263,16 @@ void ulist()
         return;
     }
 
-    snprintf(message, 8, "ULS %s\n", user.gid);
+    sprintf(message, "ULS %s\n", user.gid);
 
     tcp_send(DSIP, DSport, message, strlen(message), NULL);
 }
 
-//* Send a message to the current group
+//* Sends a message to the current group
 void post()
 {
-    char *str, *text, *filename, *end;
-    char message[512];
+    char *text, *filename;
+    char post[POST_SIZE];
 
     //* Check if there is no login
     if (user.logged == false)
@@ -352,138 +281,50 @@ void post()
         return;
     }
 
-    //* Get rest of the command
-    if ((str = strtok(NULL, "\0")) == NULL)
-    {
-        arguments_error();
-        return;
-    }
+    text = strtok(NULL, "\"");
+    filename = strtok(NULL, "\0");
 
-    //* If is only text
-    if (regexec(&reg_text, str, 0, NULL, 0) == 0)
-    {
-        if ((text = strtok(str, "\"")) == NULL || (filename = strtok(NULL, "\"")) != NULL)
-        {
-            arguments_error();
-            return;
-        }
-    }
-    //* If its text and file
-    else if (regexec(&reg_file, str, 0, NULL, 0) == 0)
-    {
-        if ((text = strtok(str, "\"")) == NULL || (filename = strtok(NULL, "\0")) == NULL || (end = strtok(NULL, "\0")) != NULL)
-        {
-            arguments_error();
-            return;
-        }
-
-        filename++;
-    }
-    else
-    {
-        fprintf(stderr, "[!]Wrong format for post, check arguments\n");
-        ;
-        return;
-    }
-
-    sprintf(message, "PST %s %s %ld %s", user.uid, user.gid, strlen(text), text);
+    sprintf(post, "PST %s %s %ld %s", user.uid, user.gid, strlen(text), text);
     if (filename == NULL)
     {
-        tcp_send(DSIP, DSport, message, strlen(message), NULL);
+        tcp_send(DSIP, DSport, post, strlen(post), NULL);
     }
     else
     {
-        tcp_send(DSIP, DSport, message, strlen(message), filename);
+        tcp_send(DSIP, DSport, post, strlen(post), ++filename);
     }
 }
 
-//TODO
+//* Retrieves up to 20 messages from the current group
 void retrieve()
 {
-    char message[19];
+    char message[MESSAGE_SIZE];
     char *mid;
 
-    if ((mid = strtok(NULL, " ")) == NULL)
-    {
-        arguments_error();
-        return;
-    }
     if (user.logged == false)
     {
-        fprintf(stderr, "No user logged in!\n");
-        return;
-    }
-    if (regexec(&reg_gid, user.gid, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "No group selected\n");
-        return;
-    }
-    if (regexec(&reg_mid, mid, 0, NULL, 0) != 0)
-    {
-        fprintf(stderr, "MID has to be 4 numeric characters!\n");
+        fprintf(stderr, "[!]No user logged in\n");
         return;
     }
 
-    snprintf(message, 19, "RTV %s %s %s\n", user.uid, user.gid, mid);
-    printf("%s", message);
+    mid = strtok(NULL, " ");
+
+    sprintf(message, "RTV %s %s %s\n", user.uid, user.gid, mid);
 
     tcp_send(DSIP, DSport, message, strlen(message), NULL);
 }
 
-//* Initialize client
-void init()
+
+//TODO messages
+int main(int argc, char *argv[])
 {
+    char buffer[512];
+
     //*Initialize local user
     user.logged = false;
     memset(user.uid, 0, 6);
     memset(user.pass, 0, 9);
     memset(user.gid, 0, 3);
-
-    //*Initialize regular expressions
-    if (regcomp(&reg_uid, "^[0-9]{5}$", REG_EXTENDED) != 0)
-    {
-        fprintf(stderr, "Regular expression for uid compilation failed!");
-        exit(1);
-    }
-    if (regcomp(&reg_pass, "^[0-9a-zA-Z]{8}$", REG_EXTENDED) != 0)
-    {
-        fprintf(stderr, "Regular expression for pass compilation failed!");
-        exit(1);
-    }
-    if (regcomp(&reg_gid, "^[0-9]{2}$", REG_EXTENDED) != 0)
-    {
-        fprintf(stderr, "Regular expression for gid compilation failed!");
-        exit(1);
-    }
-    if (regcomp(&reg_gname, "^[0-9a-zA-Z_-]{1,24}$", REG_EXTENDED) != 0)
-    {
-        fprintf(stderr, "Regular expression for gname compilation failed!");
-        exit(1);
-    }
-    if (regcomp(&reg_mid, "^[0-9]{4}$", REG_EXTENDED) != 0)
-    {
-        fprintf(stderr, "Regular expression for mid compilation failed!");
-        exit(1);
-    }
-    if (regcomp(&reg_text, "^\"[^\"]{1,240}\"$", REG_EXTENDED) != 0)
-    {
-        fprintf(stderr, "Regular expression for text compilation failed!");
-        exit(1);
-    }
-    if (regcomp(&reg_file, "^\"[^\"]{1,240}\" [0-9a-zA-Z_.-]{1,20}\\.[0-9a-z]{3}$", REG_EXTENDED) != 0)
-    {
-        fprintf(stderr, "Regular expression for fname compilation failed!");
-        exit(1);
-    }
-}
-
-
-int main(int argc, char *argv[])
-{
-    char buffer[512];
-    char *cmd;
-
-    init();
 
     //TODO read flags
 
@@ -497,103 +338,102 @@ int main(int argc, char *argv[])
     strcpy(DSport, "58011");
 
     while (true)
-    {
+    {   
+        //*Get command
+        write(1, ">", 1);
         fgets(buffer, sizeof(buffer), stdin);
         buffer[strlen(buffer) - 1] = '\0';
 
-        if ((cmd = strtok(buffer, " ")) == NULL)
-        {
-            continue;
-        }
-
         //*Register user
-        if (strcmp(cmd, "reg") == 0)
+        if (regex_test("^reg [[:digit:]]{5} [[:alnum:]]{8}$", buffer))
         {
+            strtok(buffer, " ");
             reg();
         }
         //*Unregister user
-        else if (strcmp(cmd, "unr") == 0 || strcmp(cmd, "unregister") == 0)
+        else if (regex_test("^(unr|unregister) [[:digit:]]{5} [[:alnum:]]{8}$", buffer))
         {
+            strtok(buffer, " ");
             unr();
         }
         //*Login
-        else if (strcmp(cmd, "login") == 0)
+        else if (regex_test("^login [[:digit:]]{5} [[:alnum:]]{8}$", buffer))
         {
+            strtok(buffer, " ");
             login();
         }
         //*Logout
-        else if (strcmp(cmd, "logout") == 0)
+        else if (regex_test("^logout$", buffer))
         {
             logout();
         }
         //*Show user id
-        else if (strcmp(cmd, "su") == 0 || strcmp(cmd, "showuid") == 0)
+        else if (regex_test("^su|showuid$", buffer))
         {
             showuid();
         }
         //*Exit application
-        else if (strcmp(cmd, "exit") == 0)
+        else if (regex_test("^exit$", buffer))
         {
             exit(0);
         }
         //*Show all groups
-        else if (strcmp(cmd, "gl") == 0 || strcmp(cmd, "groups") == 0)
+        else if (regex_test("^gl|groups$", buffer))
         {
             groups();
         }
         //*Enter/Create a group
-        else if (strcmp(cmd, "s") == 0 || strcmp(cmd, "subscribe") == 0)
+        else if (regex_test("^(s|subscribe) [[:digit:]]{2} [[:alnum:]_-]{1,24}$", buffer))
         {
+            strtok(buffer, " ");
             subscribe();
         }
         //*Leave a group
-        else if (strcmp(cmd, "u") == 0 || strcmp(cmd, "unsubscribe") == 0)
+        else if (regex_test("^(u|unsubscribe) [[:digit:]]{2}$", buffer))
         {
+            strtok(buffer, " ");
             unsubscribe();
         }
         //*Show all the groups that the user is in
-        else if (strcmp(cmd, "mgl") == 0 || strcmp(cmd, "my_groups") == 0)
+        else if (regex_test("^mgl|my_groups$", buffer))
         {
             my_groups();
         }
         //*Select a group
-        else if (strcmp(cmd, "sag") == 0 || strcmp(cmd, "select") == 0)
+        else if (regex_test("^(sag|select) [[:digit:]]{2}$", buffer))
         {
+            strtok(buffer, " ");
             sag();
         }
         //*Show current group id
-        else if (strcmp(cmd, "sg") == 0 || strcmp(cmd, "showgid") == 0)
+        else if (regex_test("^sg|showgid$", buffer))
         {
             showgid();
         }
         //*Show all user of the selected group
-        else if (strcmp(cmd, "ul") == 0 || strcmp(cmd, "ulist") == 0)
+        else if (regex_test("^ul|ulist$", buffer))
         {
             ulist();
         }
         //*Send a messge to group
-        else if (strcmp(cmd, "post") == 0)
-        {
+        else if (regex_test("^post \"[^\"]{1,240}\"( [[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3})?$", buffer))
+        {   
+            strtok(buffer, " ");
             post();
         }
         //*Retrieve messages from group
-        else if (strcmp(cmd, "r") == 0 || strcmp(cmd, "retrieve") == 0)
+        else if (regex_test("^(r|retrieve) [[:digit:]]{4}$", buffer))
         {
+            strtok(buffer, " ");
             retrieve();
         }
         else
         {
-            fprintf(stderr, "[!]Command \"%s\" doesn't exist.\n", cmd);
+            fprintf(stderr, "[!]Command doesn't match, check arguments\n");
         }
-    }
 
-    regfree(&reg_uid);
-    regfree(&reg_pass);
-    regfree(&reg_gid);
-    regfree(&reg_gname);
-    regfree(&reg_mid);
-    regfree(&reg_text);
-    regfree(&reg_file);
+        write(1, "\n", 1);
+    }
 
     exit(0);
 }

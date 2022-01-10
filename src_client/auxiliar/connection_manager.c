@@ -13,8 +13,6 @@
 #include "../../protocol_constants.h"
 
 int fd;
-char buffer[128];
-
 
 //*UDP transmissions
 int send_message_udp(const char *ds_ip, const char *ds_port, const char *message, int size)
@@ -70,7 +68,7 @@ int receive_message_udp()
 		return NOK;
 	}
 
-	buffer[n-1] = '\0';
+	buffer[n - 1] = '\0';
 
 	rcmd = strtok(buffer, " ");
 
@@ -79,23 +77,23 @@ int receive_message_udp()
 	{
 		i = atoi(strtok(NULL, " "));
 
-		for (; i >0; i--)
+		for (; i > 0; i--)
 		{
 			gid = strtok(NULL, " ");
 			gname = strtok(NULL, " ");
 			mid = strtok(NULL, " ");
-			
+
 			printf("%s: %s (%s)\n", gid, gname, mid);
 		}
 	}
 	else
-	{	
+	{
 		status = istatus(strtok(NULL, " "));
-		if(status == NEW)
+		if (status == NEW)
 		{
 			return atoi(strtok(NULL, " "));
 		}
-		
+
 		return status;
 	}
 
@@ -118,6 +116,7 @@ int udp_send(const char *ds_ip, const char *ds_port, char *message, int size)
 
 	return status;
 }
+
 
 
 //*TCP transmissions
@@ -170,19 +169,19 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 			return NOK;
 		}
 
+		//*Get file size
 		fseek(f, 0L, SEEK_END);
 		fsize = ftell(f);
 		rewind(f);
 
-		//* Ch
-		sprintf(buffer, "%011lld", fsize);
-		if (buffer[0] != '0')
+		//* Check file size
+		if ((fsize / 10000000000) >= 1)
 		{
 			fprintf(stderr, "[!]File size too big\n");
 			return NOK;
 		}
 
-		//TODO(Ramalho)verificar fsize
+		//* Send file name and size
 		sprintf(buffer, " %s %lld ", filename, fsize);
 		if ((n = write(fd, buffer, strlen(buffer)) == -1))
 		{
@@ -190,13 +189,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 			return NOK;
 		}
 
-		n = fread(buffer, 1, sizeof(buffer), f);
-		if ((n = write(fd, buffer, n) == -1))
-		{
-			fprintf(stderr, "Error sending to server\n");
-			return NOK;
-		}
-
+		//* Send file data
 		while (!feof(f))
 		{
 			n = fread(buffer, 1, sizeof(buffer), f);
@@ -231,6 +224,7 @@ int receive_message_tcp()
 		return NOK;
 	}
 
+	//* Ulist
 	if (strncmp(buffer, "RUL", 3) == 0)
 	{
 		token = strtok(buffer, " ");
@@ -255,6 +249,8 @@ int receive_message_tcp()
 			memset(buffer, 0, 128);
 		}
 	}
+
+	//TODO retrieve
 
 	return OK;
 }
