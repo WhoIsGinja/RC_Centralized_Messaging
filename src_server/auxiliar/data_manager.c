@@ -10,6 +10,7 @@
 #include "data_manager.h"
 #include "../../protocol_constants.h"
 
+#define BUFFER_SIZE 64
 #define USERS "data_server/USERS"
 #define GROUPS "data_server/GROUPS"
 
@@ -37,35 +38,36 @@ void init_server_data()
 //* User Management
 int check_pass(const char *uid, const char *pass)
 {
-    char buffer[40];
+    char buffer[BUFFER_SIZE];
     FILE *f = NULL;
 
+    //*Get password
     sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
     if ((f = fopen(buffer, "r")) == NULL)
     {
         fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
         return NOK;
     }
-
     if (fgets(buffer, sizeof(buffer), f) == NULL)
     {
         fprintf(stderr, "[!]Reading user(%s) password\n", uid);
         fclose(f);
         return NOK;
     }
-    if (strncmp(pass, buffer, 8) != 0)
+    fclose(f);
+
+    //* Compare password
+    if (strcmp(pass, buffer) != 0)
     {
         return NOK;
     }
-
-    fclose(f);
 
     return OK;
 }
 
 int user_create(const char *uid, const char *pass)
 {
-    char buffer[40];
+    char buffer[BUFFER_SIZE];
     FILE *f = NULL;
 
     // *Create user directory
@@ -131,7 +133,7 @@ int user_create(const char *uid, const char *pass)
 
 int user_delete(const char *uid, const char *pass)
 {
-    char buffer[41];
+    char buffer[BUFFER_SIZE];
 
     if (check_pass(uid, pass) == NOK)
     {
@@ -167,7 +169,7 @@ int user_delete(const char *uid, const char *pass)
 
 int user_entry(const char *uid, const char *pass, bool login)
 {
-    char buffer[41];
+    char buffer[BUFFER_SIZE];
     FILE *f = NULL;
 
     if (check_pass(uid, pass) == NOK)
@@ -199,7 +201,7 @@ int user_entry(const char *uid, const char *pass, bool login)
 
 int user_logged(const char *uid)
 {
-    char buffer[41];
+    char buffer[BUFFER_SIZE];
 
     sprintf(buffer, "%s/%s/%s_login.txt", USERS, uid, uid);
     if (access(buffer, F_OK) != 0)
@@ -219,7 +221,7 @@ int group_create(const char *uid, const char *gname)
 {
     DIR *d;
     FILE *f;
-    char buffer[34];
+    char buffer[BUFFER_SIZE];
     int gnum, status;
 
     if ((d = opendir(GROUPS)) == NULL)
@@ -336,46 +338,65 @@ int group_create(const char *uid, const char *gname)
 
 int group_add(const char *uid, const char *gid, const char *gname)
 {
-    DIR *d;
     FILE *f;
-    char dir[22];
-    char file[34];
-    char name[24];
+    char buffer[BUFFER_SIZE];
+    char name[32];
 
     //* Check valid gid
-    sprintf(dir, "%s/%s", GROUPS, gid);
-    if ((d = opendir(dir)) == NULL)
+    sprintf(buffer, "%s/%s", GROUPS, gid);
+    if (access(buffer, F_OK) != 0)
     {
-        fprintf(stderr, "[!]Invalid gid(%s): %s\n", gid, strerror(errno));
         return E_GRP;
     }
-    closedir(d);
 
     //* Check valid group name
-    sprintf(file, "%s/%s/%s_name.txt", GROUPS, gid, gid);
-    if ((f = fopen(file, "r")) == NULL)
+    sprintf(buffer, "%s/%s/%s_name.txt", GROUPS, gid, gid);
+    if ((f = fopen(buffer, "r")) == NULL)
     {
         fprintf(stderr, "[!]Opening group(%s) name file: %s\n", gid, strerror(errno));
         return NOK;
     }
-
     if (fgets(name, sizeof(name), f) == NULL)
     {
         fprintf(stderr, "[!]Reading group(%s) name: %s\n", gid, strerror(errno));
         fclose(f);
         return NOK;
     }
-    if (strncmp(gname, name, strlen(name)) != 0)
+    fclose(f);
+
+    if (strcmp(gname, name) != 0)
     {
         return E_GNAME;
     }
-    fclose(f);
 
     //* Create user file
-    sprintf(file, "%s/%s/%s.txt", GROUPS, gid, uid);
-    if ((f = fopen(file, "w+")) == NULL)
+    sprintf(buffer, "%s/%s/%s.txt", GROUPS, gid, uid);
+    if ((f = fopen(buffer, "w+")) == NULL)
     {
         fprintf(stderr, "[!]Adding user(%s) to group(%s): %s\n", uid, gid, strerror(errno));
+        return NOK;
+    }
+    fclose(f);
+
+    return OK;
+}
+
+int group_remove(const char* uid, const char* gid)
+{
+    char buffer[BUFFER_SIZE];
+
+    //* Check valid gid
+    sprintf(buffer, "%s/%s", GROUPS, gid);
+    if (access(buffer, F_OK) != 0)
+    {
+        return E_GRP;
+    }
+
+    //* Delete user
+    sprintf(buffer, "%s/%s/%s.txt", GROUPS, gid, uid);
+    if (remove(buffer) == -1 && errno != ENOENT)
+    {   
+        fprintf(stderr, "[!]Deleting user(%s) from group(%s): %s\n", uid, gid, strerror(errno));
         return NOK;
     }
 
@@ -388,7 +409,7 @@ int groups_get(char **glist, const char *uid)
     struct dirent **msgs;
     FILE* f;
     int i, gnum, mnum, gcount;
-    char buffer[64];
+    char buffer[BUFFER_SIZE];
     char gname[25];
     
     if ((gnum = scandir(GROUPS, &groups, NULL, alphasort)) == -1)

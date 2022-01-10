@@ -112,7 +112,24 @@ int gsr()
 	return ERR;
 }
 
-//* Returns
+//* Removes a user from a group
+int gur()
+{
+	char *uid, *gid;
+
+	uid = strtok(NULL, " ");
+	gid = strtok(NULL, " ");
+
+	//* Check if user is logged on
+	if (user_logged(uid) != OK)
+	{
+		return E_USR;
+	}
+
+	return group_remove(uid, gid);
+}
+
+//* Returns 
 int ggroups(char **groups, const char *uid)
 {
 	if (uid != NULL)
@@ -170,6 +187,7 @@ char *udp_commands(char *buffer, int n)
 	//* Subscribe
 	else if (regex_test("^GSR [[:digit:]]{5} [[:digit:]]{2} [[:alnum:]_-]{1,24}$", buffer))
 	{
+		strtok(buffer, " ");
 		status = gsr();
 
 		if (status > NEW)
@@ -181,7 +199,15 @@ char *udp_commands(char *buffer, int n)
 			sprintf(buffer, "RGS %s\n", strstatus(status));
 		}
 	}
-	//* Groups
+	//* Unsubscribe
+	else if (regex_test("^GUR [[:digit:]]{5} [[:digit:]]{2}$", buffer))
+	{
+		strtok(buffer, " ");
+		status = gur();
+
+		sprintf(buffer, "RGU %s\n", strstatus(status));
+	}
+	//* All groups
 	else if (regex_test("^GLS$", buffer))
 	{
 		status = ggroups(&groups, NULL);
@@ -288,7 +314,7 @@ void udp_communication(const char *port)
 
 			n = sendto(fd, response, strlen(response), 0, (struct sockaddr *)&addr, addrlen);
 
-			if (buffer[0] == '\0')
+			if (response != buffer)
 			{
 				free(response);
 			}
