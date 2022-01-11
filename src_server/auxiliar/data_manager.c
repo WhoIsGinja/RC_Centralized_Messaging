@@ -539,13 +539,12 @@ int groups_get(char **glist, const char *uid)
 }
 
 
-int groups_msg_add(char const *uid, char const *gid, char *text)
+int group_msg_add(char const *uid, char const *gid, char *text)
 {
     DIR *d;
     FILE *f;
     char buffer[BUFFER_SIZE];
-    char *path;
-    int mnum, status;
+    int mnum;
 
     //* Check valid gid
     sprintf(buffer, "%s/%s", GROUPS, gid);
@@ -579,7 +578,7 @@ int groups_msg_add(char const *uid, char const *gid, char *text)
     sprintf(buffer, "%s/%s/MSG/%04d", GROUPS, gid, mnum);
     if (mkdir(buffer, S_IRWXU) == -1)
     {
-        fprintf(stderr, "[!]Creating message directory: %s\n", stderror(errno));
+        fprintf(stderr, "[!]Creating message directory: %s\n", strerror(errno));
         return NOK;
     }
 

@@ -405,7 +405,7 @@ int post_msg(char* mid,const char* buffer,int nread)
 			return NOK;
 		}
 
-		groups_msg_add_file(mid, filename, data);		
+		group_msg_add_file(mid, filename, data);		
 	}
 	else
 	{
@@ -434,6 +434,7 @@ int post_file(int coonfd, const char* mid)
 
 		groups_msg_file_write(gid, mid, filename, data);
 	}
+	return OK;
 }
 
 void tcp_commands(char *buffer, int nread, int connfd)
