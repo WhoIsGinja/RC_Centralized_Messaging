@@ -33,7 +33,12 @@ bool regex_test(const char *rule, const char *str)
 {
 	regex_t reg;
 
-	if (regcomp(&reg, rule, REG_EXTENDED | REG_NOSUB) != 0)
+	if(str == NULL)
+	{
+		return false;
+	}
+
+	if (regcomp(&reg, rule, REG_EXTENDED) != 0)
 	{
 		fprintf(stderr, "[!]Regular expression compilation failed.");
 		exit(1);
@@ -130,7 +135,7 @@ int gur()
 }
 
 //* Returns 
-int ggroups(char **groups, const char *uid)
+int groups(char **glist, const char *uid)
 {
 	if (uid != NULL)
 	{
@@ -141,7 +146,7 @@ int ggroups(char **groups, const char *uid)
 		}
 	}
 
-	if (groups_get(groups, uid) == NOK)
+	if (groups_get(glist, uid) == NOK)
 	{
 		return ERR;
 	}
@@ -153,7 +158,8 @@ int ggroups(char **groups, const char *uid)
 //* If response smaller than BUFFER_UDP, buffer is used
 char *udp_commands(char *buffer, int n)
 {
-	char *groups;
+	char* glist;
+	char* tmp;
 	int status;
 
 	//* Register
@@ -211,10 +217,15 @@ char *udp_commands(char *buffer, int n)
 	//* All groups
 	else if (regex_test("^GLS$", buffer))
 	{
-		status = ggroups(&groups, NULL);
+		status = groups(&glist, NULL);
+		
+		tmp = (char*) malloc(sizeof(char*) * (strlen(glist) + 5));
+		sprintf(tmp,"RGL %s\n", glist);
+		free(glist);
+
 		if (status == OK)
 		{
-			return groups;
+			return tmp;
 		}
 		else if (status == E_USR)
 		{
@@ -229,10 +240,15 @@ char *udp_commands(char *buffer, int n)
 	else if (regex_test("^GLM [[:digit:]]{5}$", buffer))
 	{
 		strtok(buffer, " ");
-		status = ggroups(&groups, strtok(NULL, " "));
+		status = groups(&glist, strtok(NULL, " "));
+
+		tmp = (char*) malloc(sizeof(char*) * (strlen(glist) + 5));
+		sprintf(tmp,"RGM %s\n", glist);
+		free(glist);
+
 		if (status == OK)
 		{
-			return groups;
+			return tmp;
 		}
 		else if (status == E_USR)
 		{
@@ -303,15 +319,22 @@ void udp_communication(const char *port)
 			return;
 		}
 
-		buffer[n - 1] = '\0';
-
 		printf("[?]From %s - %d: %s\n", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port), buffer);
 
 		childp++;
 
 		if (fork() == 0)
-		{
-			response = udp_commands(buffer, n);
+		{	
+			if(buffer[n - 1] == '\n')
+			{
+				buffer[n - 1] = '\0';
+				response = udp_commands(buffer, n);
+			}
+			else
+			{
+				sprintf(buffer, "%s\n", strstatus(ERR));
+			}
+
 
 			n = sendto(fd, response, strlen(response), 0, (struct sockaddr *)&addr, addrlen);
 

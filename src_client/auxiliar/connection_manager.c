@@ -9,10 +9,40 @@
 #include <string.h>
 #include <ctype.h>
 #include <errno.h>
+#include <stdbool.h>
+#include <regex.h>
 #include "connection_manager.h"
 #include "../../protocol_constants.h"
 
 int fd;
+
+//* Test str with rule
+bool regex_test(const char *rule, const char *str)
+{
+	regex_t reg;
+
+	if (str == NULL)
+	{
+		return false;
+	}
+
+	if (regcomp(&reg, rule, REG_EXTENDED) != 0)
+	{
+		fprintf(stderr, "[!]Regular expression compilation failed.");
+		exit(1);
+	}
+
+	if (regexec(&reg, str, 0, NULL, 0) == 0)
+	{
+		return true;
+	}
+	else
+	{
+		return false;
+	}
+}
+
+
 
 //*UDP transmissions
 int send_message_udp(const char *ds_ip, const char *ds_port, const char *message, int size)
@@ -118,7 +148,6 @@ int udp_send(const char *ds_ip, const char *ds_port, char *message, int size)
 }
 
 
-
 //*TCP transmissions
 int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int size, char *filename)
 {
@@ -213,42 +242,143 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 }
 
 
-int receive_message_tcp()
+//* Read n - 1 bytes or less(TCP)
+int read_nbytes(char *buffer, int *nread, int nbytes)
 {
+	char *ptr;
 	int n;
-	char buffer[128], *token;
+	int nleft;
 
-	if ((n = read(fd, buffer, 128)) == -1)
+	nleft = nbytes - 1;
+	ptr = buffer;
+
+	while (nleft > 0)
 	{
-		fprintf(stderr, "Error receiving from server\n");
-		return NOK;
+		//.FIXME error
+		if ((n = read(fd, ptr, nleft)) == -1)
+		{
+			fprintf(stderr, "[!]Error receiving from server\n");
+			return ERR;
+		}
+
+		if (n == 0)
+		{
+			*nread = nbytes - 1 - n;
+			buffer[*nread] = '\0';
+			return OK;
+		}
+
+		nleft -= n;
+		ptr += n;
 	}
 
+	*nread = nbytes - 1 - n;
+	buffer[*nread] = '\0';
+	return NOK;
+}
+
+
+int receive_message_tcp()
+{
+	int n, i;
+	char c;
+	char *token;
+
+	char buffer[4096];
+	char* cmd;
+	int nread;
+	int status;
+
+	status = read_nbytes(buffer, &nread, 4096);
+
 	//* Ulist
-	if (strncmp(buffer, "RUL", 3) == 0)
+	if (regex_test("^RUL (OK|NOK) ", buffer))
 	{
-		token = strtok(buffer, " ");
+		char *ulist;
+
+		strtok(buffer, " ");
 		token = strtok(NULL, " ");
-		if (strncmp(token, "NOK", 3) == 0)
+		if (istatus(token) == NOK)
 		{
-			fprintf(stderr, "Group does not exist\n");
+			printf("[-]Group does not exist\n");
 			return NOK;
 		}
 
-		token = strtok(NULL, " ");
-		memset(buffer, 0, 128);
-		while ((n = read(fd, buffer, 128)) > 0)
+		//* Read fodido
+		ulist = (char *)calloc(4096, sizeof(char));
+		while (true)
 		{
-			token = strtok(buffer, " ");
-			while (token != NULL)
+			memset(buffer, 0, 4096);
+
+			strncat(ulist, buffer, 4096);
+			if (n != 0)
 			{
-				printf("%s\n", token);
-				token = strtok(NULL, " ");
+				ulist = (char *)realloc(ulist, 4096 * 2);
+				continue;
 			}
 
-			memset(buffer, 0, 128);
+			break;
+		}
+
+		printf("u: %s", ulist);
+
+		if (!regex_test("^ [[:alnum:]_-]{1,24}( [[:digit:]]{5})*\\\n", ulist))
+		{
+			printf("[-]Server doesn't follow protocol\n");
+			return NOK;
+		}
+
+		token = strtok(ulist, " ");
+		printf("[-]%s users:\n", token);
+
+		while ((token = strtok(NULL, " ")) != NULL)
+		{
+			printf("-%s\n", token);
 		}
 	}
+
+	//* Post
+	else if (regex_test("^RPT (OK|NOK)\\\n", buffer))
+	{
+	}
+
+	//* Retrieve
+	else if (regex_test("^RRT (OK|NOK) ", buffer))
+	{
+	}
+	else
+	{
+		fprintf(stderr, "[!]Response doesn't follow protocol");
+	}
+
+	/*if (strncmp(buffer, "RRT", 3) ==)
+	{
+		while ((c = buffer[i]) != '\n')
+		{
+			switch (state)
+			{
+			case 0:
+
+				break;
+
+			default:
+				break;
+			}
+
+			i++;
+			if (i == n)
+			{
+				memset(buffer, 0, sizeof(buffer));
+				if ((n = read(fd, buffer, sizeof(buffer))) == -1)
+				{
+					fprintf(stderr, "Error receiving from server\n");
+					return NOK;
+				}
+
+				i = 0;
+			}
+		}
+	}*/
 
 	//TODO retrieve
 

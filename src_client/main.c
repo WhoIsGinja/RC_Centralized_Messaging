@@ -26,34 +26,12 @@ char DSIP[IP_SIZE];
 char DSport[PORT_SIZE];
 
 
-//* Test str with rule
-bool regex_test(const char *rule, const char *str)
-{
-	regex_t reg;
-
-	if (regcomp(&reg, rule, REG_EXTENDED | REG_NOSUB) != 0)
-	{
-		fprintf(stderr, "[!]Regular expression compilation failed.");
-		exit(1);
-	}
-
-	if (regexec(&reg, str, 0, NULL, 0) == 0)
-	{
-		return true;
-	}
-	else
-	{
-		return false;
-	}
-}
-
-
 //* Register user
 void reg()
 {
     char *uid, *pass;
     char message[MESSAGE_SIZE];
-    
+
     uid = strtok(NULL, " ");
     pass = strtok(NULL, " ");
 
@@ -220,7 +198,7 @@ void sag()
     }
 
     gid = strtok(NULL, " ");
-   
+
     sprintf(user.gid, "%s", gid);
 }
 
@@ -314,33 +292,53 @@ void retrieve()
     tcp_send(DSIP, DSport, message, strlen(message), NULL);
 }
 
-
 //TODO messages
 int main(int argc, char *argv[])
 {
+    int opt;
     char buffer[512];
 
-    //*Initialize local user
+    //* Initialize local user
     user.logged = false;
     memset(user.uid, 0, 6);
     memset(user.pass, 0, 9);
     memset(user.gid, 0, 3);
 
-    //TODO read flags
-
+    //* Initialize base address
     if (gethostname(buffer, sizeof(buffer)) == -1)
     {
-        fprintf(stderr, "Error getting host name\n");
+        fprintf(stderr, "[!]Getting host name\n");
+    }
+    strcpy(DSIP, buffer);
+    strcpy(DSport, "58005");
+
+    while ((opt = getopt(argc, argv, ":n:p:")) != -1)
+    {
+        switch (opt)
+        {
+        case 'n':
+            strcpy(DSIP, optarg);
+            break;
+        case 'p':
+            strcpy(DSport, optarg);
+            break;
+        case ':':
+            fprintf(stderr, "[!]Argument needs a value");
+            exit(1);
+            break;
+        case '?':
+            fprintf(stderr, "[!]Invalid arguments format");
+            exit(1);
+            break;
+        }
     }
 
-    //FIXME hardcoded for testing
-    strcpy(DSIP, "tejo.tecnico.ulisboa.pt");
-    strcpy(DSport, "58011");
+    printf("[=]Connection with server at %s:%s\n", DSIP, DSport);
 
     while (true)
-    {   
+    {
         //*Get command
-        write(1, ">", 1);
+        printf(">");
         fgets(buffer, sizeof(buffer), stdin);
         buffer[strlen(buffer) - 1] = '\0';
 
@@ -432,7 +430,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "[!]Command doesn't match, check arguments\n");
         }
 
-        write(1, "\n", 1);
+        printf("\n");
     }
 
     exit(0);

@@ -19,6 +19,11 @@ bool regex_test(const char *rule, const char *str)
 {
 	regex_t reg;
 
+	if (str == NULL)
+	{
+		return false;
+	}
+
 	if (regcomp(&reg, rule, REG_EXTENDED) != 0)
 	{
 		fprintf(stderr, "[!]Regular expression compilation failed.");
@@ -112,6 +117,7 @@ int udp_send(const char *ds_ip, const char *ds_port, const char *message, int si
 int send_message_tcp(const char *ds_ip, const char *ds_port, const char *message, int size)
 {
 	struct addrinfo hints, *res;
+	char buffer[2];
 	int n, errcode;
 
 	fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -140,11 +146,14 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, const char *message
 		return NOK;
 	}
 
-	/*SIZE AQUI*/
-	if ((n = write(fd, message, size) == -1))
+	for (int i = 0; i < size; i++)
 	{
-		fprintf(stderr, "Error sending to server\n");
-		return NOK;
+		sprintf(buffer, "%c", message[i]);
+		if ((n = write(fd, buffer, 1) == -1))
+		{
+			fprintf(stderr, "Error sending to server\n");
+			return NOK;
+		}
 	}
 
 	return OK;
@@ -185,10 +194,13 @@ int tcp_send(const char *ds_ip, const char *ds_port, const char *message, int si
 
 int main(int argc, char *argv[])
 {
-	char buffer[128];
+	char buffer[512];
 	char DSIP[128];
 	char DSport[128];
 	int n;
+	int nleft;
+	char *ptr;
+	char *token;
 	struct dirent **groups;
 
 	setvbuf(stdout, NULL, _IONBF, 0);
@@ -209,7 +221,6 @@ int main(int argc, char *argv[])
 		system("clear");
 		printf("Commands:\n[?]U REG UID PASS\n[?]U UNR UID PASS\n[?]U LOG UID PASS\n[?]U OUT UID PASS\n[?]U GLS\n[?]U GSR UID GID GName\n[?]U GUR UID GID\n[?]U GLM UID\n[?]T ULS GID\n[?]T PST UID GID Tsize text [Fname Fsize data]\n[?]T RTV UID GID MID\n\n[?]");
 		fgets(buffer, sizeof(buffer), stdin);
-		buffer[strlen(buffer) - 1] = 0;
 		printf("\n[+]%s\n[-]", buffer);
 		//*Register user
 		if (buffer[0] == 'U')
@@ -224,7 +235,33 @@ int main(int argc, char *argv[])
 
 		printf("\n...");
 
-		//printf("test: %s\n", regex_test("^post \"[^\"]{1,240}\"( [[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3})?$", buffer)? "true" : "false");
+		if (regex_test("^RUL (OK|NOK) ", buffer))
+		{
+			char *ulist;
+
+			strtok(buffer, " ");
+			token = strtok(NULL, " ");
+
+			ulist = token + strlen(token) + 1;
+
+			printf("%s", ulist);
+
+			if (!regex_test("^[[:alnum:]_-]{1,24}( [[:digit:]]{5})*\\\n", ulist))
+			{
+				printf("[-]Server doesn't follow protocol\n");
+				return NOK;
+			}
+
+			token = strtok(ulist, " ");
+			printf("[-]%s users:\n", token);
+
+			while ((token = strtok(NULL, " ")) != NULL)
+			{
+				printf("-%s\n", token);
+			}
+		}
+
+		//printf("test: %s\n", regex_test("^RUL (OK|NOK)", buffer)? "true" : "false");
 
 		/* if ((n = scandir(".", &groups, NULL, alphasort)) == -1)
 		{
@@ -232,7 +269,7 @@ int main(int argc, char *argv[])
 		}
 		while(n--)
 		printf("%s\n", groups[n]->d_name); */
-
+		
 		fgets(buffer, sizeof(buffer), stdin);
 	}
 

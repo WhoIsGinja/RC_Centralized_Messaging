@@ -14,6 +14,8 @@
 #define USERS "data_server/USERS"
 #define GROUPS "data_server/GROUPS"
 
+char f_uid[6];
+
 void init_server_data()
 {
     if (mkdir("data_server", S_IRWXU) == -1 && errno != EEXIST)
@@ -403,6 +405,24 @@ int group_remove(const char* uid, const char* gid)
     return OK;
 }
 
+//* Flters groups 
+int filter_groups(const struct dirent *entry)
+{   
+    char buffer[BUFFER_SIZE];
+    if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+    {
+        return 0;
+    }
+
+    if(f_uid[0] != 0)
+    {
+        sprintf(buffer, "%s/%s/%s.txt", GROUPS, entry->d_name, f_uid);
+        return (access(buffer, F_OK) == 0);
+    }
+
+   return 1;
+}
+
 int groups_get(char **glist, const char *uid)
 {
     struct dirent **groups;
@@ -411,15 +431,28 @@ int groups_get(char **glist, const char *uid)
     int i, gnum, mnum, gcount;
     char buffer[BUFFER_SIZE];
     char gname[25];
+
+    setvbuf(stdout, NULL, _IONBF, 0);
     
-    if ((gnum = scandir(GROUPS, &groups, NULL, alphasort)) == -1)
+    //* Filter for groups
+    if(uid != NULL)
+    {
+        stpcpy(f_uid, uid);
+    }
+    else
+    {
+        memset(f_uid, 0, sizeof(f_uid));
+    }
+    
+    //* Get groups
+    if ((gnum = scandir(GROUPS, &groups, filter_groups, alphasort)) == -1)
     {
         fprintf(stderr, "[!]Getting groups: %s\n", strerror(errno));
         return NOK;
     }
 
     //* Take into account . and ..
-    if (gnum - 2 == 0)
+    if (gnum == 0)
     {
         *glist = NULL;
         free(groups);
@@ -429,66 +462,17 @@ int groups_get(char **glist, const char *uid)
     //* Allocate memory for list
     if ((*glist = (char*) calloc(4096, sizeof(char))) == NULL)
     {
-        fprintf(stderr, "[!]Allocating memory for response\n");
         free(groups);
+        fprintf(stderr, "[!]Allocating memory for response\n");
         return NOK;
     }
 
-    gcount = 0;
-    //* Number of groups
-    for (i = 2; i < gnum; i++)
-    {
-        if (uid != NULL)
-        {
-            sprintf(buffer, "%s/%s/%s.txt", GROUPS, groups[i]->d_name, uid);
-            if (access(buffer, F_OK) != 0)
-            {
-                if (errno != ENOENT)
-                {
-                    fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
-                    free(groups);
-                    free(*glist);
-                    return NOK;
-                }
-                
-                continue;
-            }
-        }
-        gcount++;
-    }
-
-    if(uid == NULL)
-    {
-        sprintf(buffer, "RGL %d", gcount);
-        strcat(*glist, buffer);
-    }
-    else
-    {
-        sprintf(buffer, "RGM %d", gcount);
-        strcat(*glist, buffer);
-    }
+    sprintf(buffer, "%d", gnum);
+    strcat(*glist, buffer);
 
     //* Build list
-    for (i = 2; i < gnum; i++)
+    for (i = 0; i < gnum; i++)
     {   
-        //* If it's a user group
-        if (uid != NULL)
-        {
-            sprintf(buffer, "%s/%s/%s.txt", GROUPS, groups[i]->d_name, uid);
-            if (access(buffer, F_OK) != 0)
-            {
-                if (errno != ENOENT)
-                {
-                    fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
-                    free(groups);
-                    free(*glist);
-                    return NOK;
-                }
-                
-                continue;
-            }
-        }
-
         //*Get group name
         sprintf(buffer, "%s/%s/%s_name.txt", GROUPS, groups[i]->d_name, groups[i]->d_name);
         if ((f = fopen(buffer, "r")) == NULL)
@@ -532,8 +516,6 @@ int groups_get(char **glist, const char *uid)
         strcat(*glist, buffer);
     } 
     free(groups);
-
-    strcat(*glist, "\n");
 
     return OK;
 }
