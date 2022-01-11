@@ -230,12 +230,12 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 		}
 
 		fclose(f);
-	}
 
-	if ((n = write(fd, "\n", 1) == -1))
-	{
-		fprintf(stderr, "Error sending to server\n");
-		return NOK;
+		if ((n = write(fd, "\n", 1) == -1))
+		{
+			fprintf(stderr, "Error sending to server\n");
+			return NOK;
+		}
 	}
 
 	return OK;
@@ -257,12 +257,16 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 		//.FIXME error
 		if ((n = read(fd, ptr, nleft)) == -1)
 		{
-			fprintf(stderr, "[!]Error receiving from server\n");
+			fprintf(stderr, "[!]Error receiving from server: %s\n", strerror(errno));
 			return ERR;
 		}
 
+		write(1,ptr,n );
+		write(1,"\n",1);
+
 		if (n == 0)
 		{
+			printf("aaaa\n");
 			*nread = nbytes - 1 - nleft;
 
 			if(buffer[*nread - 1] == '\n')
@@ -279,17 +283,19 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 
 		nleft -= n;
 		ptr += n;
+
 	}
 
 	*nread = nbytes - 1 - nleft;
-	buffer[*nread] = '\0';
+	buffer[*nread - 1] = '\0';
+
 	return NOK;
 }
 
 
 int receive_message_tcp()
 {
-	int n, i;
+	int n, i, ulistLeft, ulistSize;
 	char c;
 	char *token;
 
@@ -299,6 +305,7 @@ int receive_message_tcp()
 	int status;
 
 	status = read_nbytes(buffer, &nread, 4096);
+	printf("STATUS: %s", strstatus(status));
 
 	//* Ulist
 	if (regex_test("^RUL (OK|NOK) ", buffer))
@@ -314,24 +321,42 @@ int receive_message_tcp()
 		}
 
 		//* Read fodido
-		ulist = (char *)calloc(4096, sizeof(char));
+		ulist = (char *)calloc(16, sizeof(char));
+		ulistLeft = 16;
+		ulistSize = 16;
+	
 		while (true)
 		{
-			memset(buffer, 0, 4096);
-
-			strncat(ulist, buffer, 4096);
-			if (n != 0)
+			printf("%d-%s\n", strlen(buffer),buffer);
+			while (ulistLeft < strlen(buffer))
 			{
-				ulist = (char *)realloc(ulist, 4096 * 2);
-				continue;
+				int ulistLen = strlen(ulist);
+
+				printf("LEN: %d\n", ulistLen);
+				printf("SIZE: %d\n", ulistSize);
+				
+				ulistSize *= 2;
+				ulist = (char*)realloc(ulist, ulistSize);
+				
+				ulistLeft = ulistSize - ulistLen;
+				printf("LEFT: %d\n", ulistLeft);
+
+				memset(ulist + ulistLen, 0, ulistLeft);
 			}
 
-			break;
+			strncat(ulist, buffer, strlen(buffer));
+			
+			if (status == OK)
+			{
+				break;
+			}
+
+			status = read_nbytes(buffer, &nread, 4096);
 		}
 
-		printf("u: %s", ulist);
+		printf("u: %s\n", ulist);
 
-		if (!regex_test("^ [[:alnum:]_-]{1,24}( [[:digit:]]{5})*\\\n", ulist))
+		if (!regex_test("^ [[:alnum:]_-]{1,24}( [[:digit:]]{5})*", ulist))
 		{
 			printf("[-]Server doesn't follow protocol\n");
 			return NOK;

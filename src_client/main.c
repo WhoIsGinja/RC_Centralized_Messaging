@@ -199,7 +199,10 @@ void sag()
 
     gid = strtok(NULL, " ");
 
+
     sprintf(user.gid, "%s", gid);
+
+    write(1,user.gid, strlen(user.gid));
 }
 
 //* Show current selected group
@@ -305,12 +308,13 @@ int main(int argc, char *argv[])
     memset(user.gid, 0, 3);
 
     //* Initialize base address
-    if (gethostname(buffer, sizeof(buffer)) == -1)
+    /*if (gethostname(buffer, sizeof(buffer)) == -1)
     {
         fprintf(stderr, "[!]Getting host name\n");
     }
-    strcpy(DSIP, buffer);
-    strcpy(DSport, "58005");
+    strcpy(DSIP, buffer);*/
+    strcpy(DSIP, "tejo.tecnico.ulisboa.pt");
+    strcpy(DSport, "58011");
 
     while ((opt = getopt(argc, argv, ":n:p:")) != -1)
     {
