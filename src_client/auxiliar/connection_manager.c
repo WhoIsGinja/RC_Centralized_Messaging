@@ -263,8 +263,17 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 
 		if (n == 0)
 		{
-			*nread = nbytes - 1 - n;
-			buffer[*nread] = '\0';
+			*nread = nbytes - 1 - nleft;
+
+			if(buffer[*nread - 1] == '\n')
+			{
+				buffer[*nread - 1] = '\0';
+			}
+			else
+			{
+				return ERR;
+			}
+			
 			return OK;
 		}
 
@@ -272,7 +281,7 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 		ptr += n;
 	}
 
-	*nread = nbytes - 1 - n;
+	*nread = nbytes - 1 - nleft;
 	buffer[*nread] = '\0';
 	return NOK;
 }
