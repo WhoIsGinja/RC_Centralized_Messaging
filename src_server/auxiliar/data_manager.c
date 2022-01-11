@@ -539,3 +539,137 @@ int groups_get(char **glist, const char *uid)
 }
 
 
+int groups_msg_add(char const *uid, char const *gid, char *text)
+{
+    DIR *d;
+    FILE *f;
+    char buffer[BUFFER_SIZE];
+    char *path;
+    int mnum, status;
+
+    //* Check valid gid
+    sprintf(buffer, "%s/%s", GROUPS, gid);
+    if (access(buffer, F_OK) != 0)
+    {
+        return NOK;
+    }
+
+    sprintf(buffer, "%s/%s/MSG", GROUPS, gid);
+
+    if ((d = opendir(buffer)) == NULL)
+    {
+        fprintf(stderr, "[!]Opening message directory of group: %s\n", strerror(errno));
+        return NOK;
+    }
+
+
+    //* Number of messages
+    for (mnum = -1; readdir(d) != NULL; mnum++)
+        ;
+
+    closedir(d);
+
+    if (mnum >= 9999)
+    {
+        fprintf(stderr, "[!]Message directory full\n");
+        return E_FULL;
+    }
+
+    //* Create message directory
+    sprintf(buffer, "%s/%s/MSG/%04d", GROUPS, gid, mnum);
+    if (mkdir(buffer, S_IRWXU) == -1)
+    {
+        fprintf(stderr, "[!]Creating message directory: %s\n", stderror(errno));
+        return NOK;
+    }
+
+    //* Create message author UID file
+    sprintf(buffer, "%s/%s/MSG/%04d/A U T H O R.txt", GROUPS, gid, mnum);
+    if ((f = fopen(buffer, "w+")) == NULL)
+    {
+        fprintf(stderr, "[!]Creating author file: %s\n", strerror(errno));
+
+        sprintf(buffer, "%s/%s/MSG/%04d", GROUPS, gid, mnum);
+        if(remove(buffer) == -1)
+        {
+            fprintf(stderr, "[!]Deleting message directory: %s\n", strerror(errno));
+            return NOK;
+        }
+
+        return NOK;
+    }
+
+    //* Write author UID
+    if (fputs(uid, f) == EOF)
+    {
+        fclose(f);
+
+        fprintf(stderr, "[!]Saving author UID\n");
+
+        sprintf(buffer, "%s/%s/MSG/%04d/A U T H O R.txt", GROUPS, gid, mnum);
+        if(remove(buffer) == -1)
+        {
+            fprintf(stderr, "[!]Deleting author file: %s\n", strerror(errno));
+            return NOK;
+        }
+
+        sprintf(buffer, "%s/%s/MSG/%04d", GROUPS, gid, mnum);
+        if(remove(buffer) == -1)
+        {
+            fprintf(stderr, "[!]Deleting message directory: %s\n", strerror(errno));
+            return NOK;
+        }
+
+        return NOK;
+    }
+    fclose(f);
+
+
+    //* Create message author UID file
+    sprintf(buffer, "%s/%s/MSG/%04d/T E X T.txt", GROUPS, gid, mnum);
+    if ((f = fopen(buffer, "w+")) == NULL)
+    {
+        fprintf(stderr, "[!]Creating text file: %s\n", strerror(errno));
+
+        sprintf(buffer, "%s/%s/MSG/%04d", GROUPS, gid, mnum);
+        if(remove(buffer) == -1)
+        {
+            fprintf(stderr, "[!]Deleting message directory: %s\n", strerror(errno));
+            return NOK;
+        }
+
+        return NOK;
+    }
+
+    //* Write text
+    if (fputs(text, f) == EOF)
+    {
+        fclose(f);
+
+        fprintf(stderr, "[!]Saving text\n");
+
+        sprintf(buffer, "%s/%s/MSG/%04d/T E X T.txt", GROUPS, gid, mnum);
+        if(remove(buffer) == -1)
+        {
+            fprintf(stderr, "[!]Deleting text file: %s\n", strerror(errno));
+            return NOK;
+        }
+
+        sprintf(buffer, "%s/%s/MSG/%04d", GROUPS, gid, mnum);
+        if(remove(buffer) == -1)
+        {
+            fprintf(stderr, "[!]Deleting message directory: %s\n", strerror(errno));
+            return NOK;
+        }
+
+        return NOK;
+    }
+    fclose(f);
+
+    return mnum;
+}
+
+int group_msg_add_file(char const *mid, char const* filename, char const* data){
+    return OK;
+}
+

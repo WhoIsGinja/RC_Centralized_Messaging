@@ -416,7 +416,7 @@ int main(int argc, char *argv[])
             ulist();
         }
         //*Send a messge to group
-        else if (regex_test("^post \"[^\"]{1,240}\"( [[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3})?$", buffer))
+        else if (regex_test("^post \".{1,240}\"( [[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3})?$", buffer))
         {   
             strtok(buffer, " ");
             post();

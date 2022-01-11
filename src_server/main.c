@@ -190,6 +190,7 @@ char *udp_commands(char *buffer, int n)
 		strtok(buffer, " ");
 		status = gsr();
 
+		//TODO verify if it is already subscribed
 		if (status > NEW)
 		{
 			sprintf(buffer, "RGS NEW %02d\n", status - NEW);
@@ -339,9 +340,130 @@ void udp_communication(const char *port)
 *    | | | |____| |     
 *    |_|  \_____|_|                               
 */
-void tcp_commands(const char *cmd)
+
+int uls()
 {
-	printf("Executes command...\n");
+	char* gid;
+	gid = strtok(NULL, " ");
+
+	return OK;
+}
+
+//TODO post doesnt receive mid, it creates one
+int post_msg(char* mid,const char* buffer,int nread)
+{
+	char *uid, *gid, *text, *filename, *data;
+	int tsize, n, i, status;
+	unsigned long long fsize;
+
+	uid = strtok(NULL, " ");
+	gid = strtok(NULL, " ");
+
+	tsize = atoi(strtok(NULL, " "));
+
+	text = strtok(NULL, "\0");
+
+	n = text[tsize] - ;
+	i = nread - n;
+
+	if(i < 0)
+	{
+		return NOK;
+	}
+
+	if(text[tsize] == '\0')
+	{
+		status = groups_msg_add(uid, gid, text);
+	}
+	else if(text[tsize] == ' ')
+	{	
+		status = groups_msg_add(uid, gid, text);
+
+		if(status != OK)
+		{
+
+		}
+
+		if(i == 0)
+		{
+			return NOK;
+		}
+
+		text[n] = '\0';
+		if(!regex_test("^[[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3} [[:digit:]]{1,10} ", text[n+1]))
+		{
+			return NOK;
+		}
+
+		filename = strtok(text[n+1], " ");
+		fsize = atoi(strtok(NULL, " "));
+
+		data = strtok(NULL, "\0");
+		
+		if(data == NULL)
+		{
+			return NOK;
+		}
+
+		groups_msg_add_file(mid, filename, data);		
+	}
+	else
+	{
+		return NOK;
+	}
+
+	return OK;
+}
+
+
+int post_file(int coonfd, const char* mid)
+{
+	char *filename, *gid, *mid, *data;
+	unsigned long long tsize;
+
+	groups_msg_file_create(gid, mid ,filename);
+
+	while()
+	{
+		tsize -= strlen(data);
+
+		if(tsize < 0)
+		{
+			groups_msg_delete()
+		}
+
+		groups_msg_file_write(gid, mid, filename, data);
+	}
+}
+
+void tcp_commands(char *buffer, int nread, int connfd)
+{
+	int status;
+
+	//* Ulist
+	if (regex_test("^ULS [[:digit:]]{2}$", buffer))
+	{
+		strtok(buffer, " ");
+		status = uls();
+		//sprintf(buffer, "RRG %s\n", strstatus(status));
+	}
+	//* Post
+	else if(regex_test("^PST [[:digit:]]{5} [[:digit:]]{2} ([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-3][0-9]|240) .{1,240}", buffer))
+	{	
+		//( [[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3} [[:digit:]]{1,10})?
+		strtok(buffer, " ");
+		status = post(buffer, nread);
+
+	}
+	//* Retrieve
+	else if()
+	{
+
+	}
+	else
+	{
+		sprintf(buffer, "%s\n", strstatus(ERR));
+	}
 }
 
 void tcp_communication(const char *port)
@@ -405,7 +527,9 @@ void tcp_communication(const char *port)
 		childp++;
 
 		if (fork() == 0)
-		{
+		{	
+			//read_nbytes
+
 			if ((n = read(connfd, buffer, sizeof(buffer))) == -1)
 			{
 				fprintf(stderr, "[!]Receiving from client: %s\n", strerror(errno));
@@ -413,7 +537,7 @@ void tcp_communication(const char *port)
 				exit(1);
 			}
 
-			tcp_commands(buffer /*, connfd*/);
+			tcp_commands(buffer, connfd);
 
 			sprintf(buffer, "TCP response");
 			//FIXME
