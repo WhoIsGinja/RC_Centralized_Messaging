@@ -15,10 +15,6 @@ enum status
     NEW
 };
 
-#define BUFFER 4096
-#define TSIZE 240
-#define FSIZE 9999999999
-
 char *strstatus(int status);
 int istatus(const char *status);
 

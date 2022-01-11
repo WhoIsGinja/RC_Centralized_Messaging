@@ -14,6 +14,10 @@
 #include "connection_manager.h"
 #include "../../protocol_constants.h"
 
+#define BUFFER_TCP 2048
+#define UL_SIZE BUFFER_TCP*2
+
+
 int fd;
 
 //* Test str with rule
@@ -261,12 +265,8 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 			return ERR;
 		}
 
-		write(1,ptr,n );
-		write(1,"\n",1);
-
 		if (n == 0)
 		{
-			printf("aaaa\n");
 			*nread = nbytes - 1 - nleft;
 
 			if(buffer[*nread - 1] == '\n')
@@ -275,6 +275,7 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 			}
 			else
 			{
+				fprintf(stderr, "[!]Server doesn't follow protocol\n");
 				return ERR;
 			}
 			
@@ -287,7 +288,8 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 	}
 
 	*nread = nbytes - 1 - nleft;
-	buffer[*nread - 1] = '\0';
+	buffer[*nread] = '\0';
+	*nread++;
 
 	return NOK;
 }
@@ -295,81 +297,85 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 
 int receive_message_tcp()
 {
-	int n, i, ulistLeft, ulistSize;
-	char c;
-	char *token;
-
-	char buffer[4096];
-	char* cmd;
 	int nread;
 	int status;
+	char *token;
+	char buffer[BUFFER_TCP];
 
-	status = read_nbytes(buffer, &nread, 4096);
-	printf("STATUS: %s", strstatus(status));
+	if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
+	{
+		return NOK;
+	}
 
 	//* Ulist
-	if (regex_test("^RUL (OK|NOK) ", buffer))
-	{
+	if (regex_test("^RUL (OK|NOK) [^ ]", buffer))
+	{	
+		int ulistLeft;
+		int ulistSize;
 		char *ulist;
 
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
 		if (istatus(token) == NOK)
 		{
-			printf("[-]Group does not exist\n");
+			printf("[-]Group doesn't exist\n");
 			return NOK;
 		}
 
-		//* Read fodido
-		ulist = (char *)calloc(16, sizeof(char));
-		ulistLeft = 16;
-		ulistSize = 16;
+		//* Create user list
+		ulist = (char *)calloc(UL_SIZE, sizeof(char));
+		ulistLeft = UL_SIZE;
+		ulistSize = UL_SIZE;
+
+		token = strtok(NULL, "");
+
+		//* Copy read users
+		strcpy(ulist, token);
 	
-		while (true)
-		{
-			printf("%d-%s\n", strlen(buffer),buffer);
-			while (ulistLeft < strlen(buffer))
-			{
-				int ulistLen = strlen(ulist);
+		ulistLeft -= strlen(ulist) + 1;
 
-				printf("LEN: %d\n", ulistLen);
-				printf("SIZE: %d\n", ulistSize);
-				
+		//* If not all users have been read
+		while (status != OK)
+		{	
+			if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
+			{
+				free(ulist);
+				return NOK;
+			}
+
+			//* If there is more to add than space
+			while (ulistLeft < nread)
+			{				
 				ulistSize *= 2;
-				ulist = (char*)realloc(ulist, ulistSize);
+				ulist = (char*) realloc(ulist, ulistSize);
 				
-				ulistLeft = ulistSize - ulistLen;
-				printf("LEFT: %d\n", ulistLeft);
-
-				memset(ulist + ulistLen, 0, ulistLeft);
+				ulistLeft = ulistSize - strlen(ulist) + 1;
 			}
 
-			strncat(ulist, buffer, strlen(buffer));
-			
-			if (status == OK)
-			{
-				break;
-			}
-
-			status = read_nbytes(buffer, &nread, 4096);
+			//* Copy new users
+			strcat(ulist, buffer);	
+			ulistLeft -= nread;
 		}
 
-		printf("u: %s\n", ulist);
-
-		if (!regex_test("^ [[:alnum:]_-]{1,24}( [[:digit:]]{5})*", ulist))
+		//* Check format
+		if (!regex_test("^[[:alnum:]_-]{1,24}( [[:digit:]]{5})*", ulist))
 		{
-			printf("[-]Server doesn't follow protocol\n");
+			fprintf(stderr,"[-]Server doesn't follow protocol\n");
+			free(ulist);
 			return NOK;
 		}
 
+		//* Print output
 		token = strtok(ulist, " ");
-		printf("[-]%s users:\n", token);
-
+		printf("[-]Users of group %s:\n", token);
 		while ((token = strtok(NULL, " ")) != NULL)
 		{
 			printf("-%s\n", token);
 		}
+
+		free(ulist);
 	}
+
 
 	//* Post
 	else if (regex_test("^RPT (OK|NOK)\\\n", buffer))

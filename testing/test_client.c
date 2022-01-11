@@ -235,7 +235,7 @@ int main(int argc, char *argv[])
 
 		printf("\n...");
 
-		if (regex_test("^RUL (OK|NOK) ", buffer))
+		/* if (regex_test("^RUL (OK|NOK) ", buffer))
 		{
 			char *ulist;
 
@@ -259,9 +259,9 @@ int main(int argc, char *argv[])
 			{
 				printf("-%s\n", token);
 			}
-		}
+		} */
 
-		//printf("test: %s\n", regex_test("^RUL (OK|NOK)", buffer)? "true" : "false");
+		printf("test: %s\n", regex_test("^PST\\b", buffer)? "true" : "false");
 
 		/* if ((n = scandir(".", &groups, NULL, alphasort)) == -1)
 		{

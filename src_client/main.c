@@ -201,8 +201,6 @@ void sag()
 
 
     sprintf(user.gid, "%s", gid);
-
-    write(1,user.gid, strlen(user.gid));
 }
 
 //* Show current selected group
