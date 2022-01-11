@@ -380,11 +380,13 @@ int receive_message_tcp()
 	//* Post
 	else if (regex_test("^RPT (OK|NOK)\\\n", buffer))
 	{
+		
 	}
 
 	//* Retrieve
-	else if (regex_test("^RRT (OK|NOK) ", buffer))
+	else if (regex_test("^RRT (OK|NOK) [^ ]", buffer))
 	{
+
 	}
 	else
 	{
