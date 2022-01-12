@@ -225,7 +225,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 		//* Send file data
 		while (!feof(f))
 		{
-			n = fread(buffer, 1, sizeof(buffer), f);
+			n = fread(buffer, sizeof(char), sizeof(buffer), f);
 			if ((n = write(fd, buffer, n) == -1))
 			{
 				fprintf(stderr, "Error sending to server\n");
@@ -246,7 +246,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 }
 
 
-//* Read n - 1 bytes or less(TCP)
+//* Read n - 1 bytes or less, last byte always a null char(TCP)
 int read_nbytes(char *buffer, int *nread, int nbytes)
 {
 	char *ptr;
@@ -288,8 +288,7 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 	}
 
 	*nread = nbytes - 1 - nleft;
-	buffer[*nread] = '\0';
-	*nread++;
+	buffer[*nread++] = '\0';
 
 	return NOK;
 }

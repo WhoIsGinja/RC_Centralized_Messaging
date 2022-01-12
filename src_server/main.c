@@ -18,22 +18,16 @@
 
 #define MAXCHILD_P 100
 #define BUFFER_UDP 64
-#define BUFFER_TCP 1024
+#define BUFFER_TCP 2048
 
-enum uid_pass_cmd
-{
-	REG,
-	UNR,
-	LOG,
-	OUT
-};
+//* Auxiliar functions
 
 //* Test str with rule
 bool regex_test(const char *rule, const char *str)
 {
 	regex_t reg;
 
-	if(str == NULL)
+	if (str == NULL)
 	{
 		return false;
 	}
@@ -62,6 +56,14 @@ bool regex_test(const char *rule, const char *str)
 * | |__| | |__| | |     
 *  \____/|_____/|_| 
 */
+//* UDP global values
+enum uid_pass_cmd
+{
+	REG,
+	UNR,
+	LOG,
+	OUT
+};
 
 //* Commands that have the format of: CMD UID PASS
 int cmd_uid_pass(int cmd)
@@ -134,7 +136,7 @@ int gur()
 	return group_remove(uid, gid);
 }
 
-//* Returns 
+//* Returns
 int groups(char **glist, const char *uid)
 {
 	if (uid != NULL)
@@ -158,8 +160,8 @@ int groups(char **glist, const char *uid)
 //* If response smaller than BUFFER_UDP, buffer is used
 char *udp_commands(char *buffer, int n)
 {
-	char* glist;
-	char* tmp;
+	char *glist;
+	char *tmp;
 	int status;
 
 	//* Register
@@ -218,9 +220,9 @@ char *udp_commands(char *buffer, int n)
 	else if (regex_test("^GLS$", buffer))
 	{
 		status = groups(&glist, NULL);
-		
-		tmp = (char*) malloc(sizeof(char*) * (strlen(glist) + 5));
-		sprintf(tmp,"RGL %s\n", glist);
+
+		tmp = (char *)malloc(sizeof(char *) * (strlen(glist) + 5));
+		sprintf(tmp, "RGL %s\n", glist);
 		free(glist);
 
 		if (status == OK)
@@ -242,8 +244,8 @@ char *udp_commands(char *buffer, int n)
 		strtok(buffer, " ");
 		status = groups(&glist, strtok(NULL, " "));
 
-		tmp = (char*) malloc(sizeof(char*) * (strlen(glist) + 5));
-		sprintf(tmp,"RGM %s\n", glist);
+		tmp = (char *)malloc(sizeof(char *) * (strlen(glist) + 5));
+		sprintf(tmp, "RGM %s\n", glist);
 		free(glist);
 
 		if (status == OK)
@@ -324,8 +326,8 @@ void udp_communication(const char *port)
 		childp++;
 
 		if (fork() == 0)
-		{	
-			if(buffer[n - 1] == '\n')
+		{
+			if (buffer[n - 1] == '\n')
 			{
 				buffer[n - 1] = '\0';
 				response = udp_commands(buffer, n);
@@ -334,7 +336,6 @@ void udp_communication(const char *port)
 			{
 				sprintf(buffer, "%s\n", strstatus(ERR));
 			}
-
 
 			n = sendto(fd, response, strlen(response), 0, (struct sockaddr *)&addr, addrlen);
 
@@ -351,6 +352,7 @@ void udp_communication(const char *port)
 		{
 			for (; childp > 0; wait(NULL), childp--)
 				;
+			childp = 0;
 		}
 	}
 }
@@ -364,132 +366,221 @@ void udp_communication(const char *port)
 *    |_|  \_____|_|                               
 */
 
+//* TCP global values
+int connfd;
+
+
+//* Gets user from the selected group
 int uls()
 {
-	char* gid;
+	char *gid;
 	gid = strtok(NULL, " ");
 
 	return OK;
 }
 
-//TODO post doesnt receive mid, it creates one
-int post_msg(char* mid,const char* buffer,int nread)
+
+int post_msg(char* gid, char *mid, char *file)
 {
-	char *uid, *gid, *text, *filename, *data;
-	int tsize, n, i, status;
-	unsigned long long fsize;
+	char* uid, *text;
+	int tsize, status;
+
+	file = NULL;
 
 	uid = strtok(NULL, " ");
 	gid = strtok(NULL, " ");
-
 	tsize = atoi(strtok(NULL, " "));
+	text = strtok(NULL, "");
 
-	text = strtok(NULL, "\0");
+	printf("TEXT: %s", text);
 
-	n = text[tsize] - ;
-	i = nread - n;
-
-	if(i < 0)
+	//* Test lenght and terminating char
+	if (strlen(text) < tsize || text[tsize] != '\0' || text[tsize] != ' ')
 	{
 		return NOK;
 	}
 
-	if(text[tsize] == '\0')
+	if (text[tsize] == ' ')
 	{
-		status = groups_msg_add(uid, gid, text);
-	}
-	else if(text[tsize] == ' ')
-	{	
-		status = groups_msg_add(uid, gid, text);
-
-		if(status != OK)
-		{
-
-		}
-
-		if(i == 0)
-		{
-			return NOK;
-		}
-
-		text[n] = '\0';
-		if(!regex_test("^[[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3} [[:digit:]]{1,10} ", text[n+1]))
-		{
-			return NOK;
-		}
-
-		filename = strtok(text[n+1], " ");
-		fsize = atoi(strtok(NULL, " "));
-
-		data = strtok(NULL, "\0");
-		
-		if(data == NULL)
-		{
-			return NOK;
-		}
-
-		group_msg_add_file(mid, filename, data);		
-	}
-	else
-	{
-		return NOK;
+		text[tsize] = '\0';
+		file = text + tsize + 1;
 	}
 
-	return OK;
+	status = groups_msg_add(uid, gid, text, mid);
+
+	return status;
 }
 
 
-int post_file(int coonfd, const char* mid)
+int post_file(const char* gid, const char *mid, char *file)
 {
-	char *filename, *gid, *mid, *data;
-	unsigned long long tsize;
+	char *filename, *data;
+	FILE *f;
+	char pathname[64];
+	char buffer[BUFFER_TCP];
+	unsigned long long fsize;
+	int status, n;
 
-	groups_msg_file_create(gid, mid ,filename);
 
-	while()
+	filename = strtok(file, " ");
+	fsize = strtoull(strtok(NULL, " "), NULL, 0);
+
+	status = groups_msg_file_create(connfd, gid, mid, fsize, filename, pathname);
+
+	if(status != OK)
 	{
-		tsize -= strlen(data);
-
-		if(tsize < 0)
-		{
-			groups_msg_delete()
-		}
-
-		groups_msg_file_write(gid, mid, filename, data);
+		return NOK;
 	}
+
+	if ((f = fopen(pathname, "a")) == NULL)
+	{
+		fprintf(stderr, "[!]Writing %s(%s) file(%s): %s\n", gid, mid, filename, strerror(errno));
+		group_msg_remove(gid,mid);
+		return NOK;
+	}
+
+	data = strtok(NULL, "\0");
+	n = fwrite(data, sizeof(char), strlen(data), f);
+	fsize -= n;
+
+	while(fsize > 0)
+	{
+		status = read_nbytes(buffer, &n, BUFFER_TCP);
+
+		n = fwrite(buffer, sizeof(char), strlen(buffer), f);
+		fsize -= n;
+	}
+	fclose(f);
+
+	if(status != OK || fsize != 0)
+	{
+		fprintf(stderr, "[!]Writing %s(%s) file(%s): %s\n", gid, mid, filename, strerror(errno));
+		group_msg_remove(gid,mid);
+		return NOK;
+	}
+
 	return OK;
 }
 
-void tcp_commands(char *buffer, int nread, int connfd)
+
+void tcp_commands(char *buffer, int nread)
 {
 	int status;
 
 	//* Ulist
-	if (regex_test("^ULS [[:digit:]]{2}$", buffer))
+	if (regex_test("^ULS\\b", buffer))
 	{
+		if (!regex_test("^ULS [[:digit:]]{2}$", buffer))
+		{
+			sprintf(buffer, "RUL %s\n", strstatus(NOK));
+			return NOK;
+		}
+
 		strtok(buffer, " ");
 		status = uls();
-		//sprintf(buffer, "RRG %s\n", strstatus(status));
 	}
 	//* Post
-	else if(regex_test("^PST [[:digit:]]{5} [[:digit:]]{2} ([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-3][0-9]|240) .{1,240}", buffer))
-	{	
-		//( [[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3} [[:digit:]]{1,10})?
-		strtok(buffer, " ");
-		status = post(buffer, nread);
+	else if (regex_test("^PST\\b", buffer))
+	{
+		char mid[5];
+		char gid[3];
+		char *file;
 
+		if (!regex_test("^RPT [[:digit:]]{5} [[:digit:]]{2} ([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-3][0-9]|240) .{1,240}", buffer))
+		{
+			sprintf(buffer, "RPT %s\n", strstatus(NOK));
+			return;
+		}
+
+		strtok(buffer, " ");
+		status = post_msg(gid, mid, file);
+
+		//* Problem creating message or there isn't a file
+		if(status != OK || file == NULL)
+		{
+			sprintf(buffer, " RPT %s\n", strstatus(NOK));
+			return;
+		}
+
+		if(!regex_test("^[[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3} [[:digit:]]{1,10} [^\\\0]", file))
+		{
+			group_msg_remove(gid, mid);
+			sprintf(buffer, "RPT %s\n", strstatus(NOK));
+			return;
+		}
+
+		status = post_file(gid, mid, file);
+		
+		sprintf(buffer, " RPT %s\n", strstatus(status));
+		return;
+		
 	}
 	//* Retrieve
-	else if()
+	else if (regex_test("^RTV\\b", buffer))
 	{
-
+		if (!regex_test("^RTV [[:digit:]]{5} [[:digit:]]{2} [[:digit:]]{4}$", buffer))
+		{
+			sprintf(buffer, "RRT %s\n", strstatus(NOK));
+			return;
+		}
 	}
 	else
 	{
 		sprintf(buffer, "%s\n", strstatus(ERR));
+		return;
 	}
+
+	close(connfd);
+	exit(0);
 }
 
+//* Read n - 1 bytes or less, last byte always a null char(TCP)
+int read_nbytes(char *buffer, int *nread, int nbytes)
+{
+	char *ptr;
+	int n;
+	int nleft;
+
+	nleft = nbytes - 1;
+	ptr = buffer;
+
+	while (nleft > 0)
+	{
+		//.FIXME error
+		if ((n = read(connfd, ptr, nleft)) == -1)
+		{
+			fprintf(stderr, "[!]Error receiving from server: %s\n", strerror(errno));
+			return ERR;
+		}
+
+		if (n == 0)
+		{
+			*nread = nbytes - 1 - nleft;
+
+			if (buffer[*nread - 1] == '\n')
+			{
+				buffer[*nread - 1] = '\0';
+			}
+			else
+			{
+				fprintf(stderr, "[!]Server doesn't follow protocol\n");
+				return ERR;
+			}
+
+			return OK;
+		}
+
+		nleft -= n;
+		ptr += n;
+	}
+
+	*nread = nbytes - 1 - nleft;
+	buffer[*nread++] = '\0';
+
+	return NOK;
+}
+
+//* Manage tcp comunication with client
 void tcp_communication(const char *port)
 {
 	int fd;
@@ -551,19 +642,20 @@ void tcp_communication(const char *port)
 		childp++;
 
 		if (fork() == 0)
-		{	
-			//read_nbytes
+		{
+			int status;
 
-			if ((n = read(connfd, buffer, sizeof(buffer))) == -1)
+			status = read_nbytes(buffer, &n, BUFFER_TCP);
+
+			if (status != ERR)
 			{
-				fprintf(stderr, "[!]Receiving from client: %s\n", strerror(errno));
-				close(connfd);
-				exit(1);
+				tcp_commands(buffer, n);
+			}
+			else
+			{
+				sprintf(buffer, "%s\n", strstatus(ERR));
 			}
 
-			tcp_commands(buffer, connfd);
-
-			sprintf(buffer, "TCP response");
 			//FIXME
 			if ((n = write(connfd, buffer, strlen(buffer))) == -1)
 			{
@@ -585,6 +677,7 @@ void tcp_communication(const char *port)
 		{
 			for (; childp > 0; wait(NULL), childp--)
 				;
+			childp = 0;
 		}
 	}
 }
@@ -605,6 +698,8 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 	}
+
+	//if(sigaction(SIGPIPE,&act,NULL)==-1)/*error*/exit(1);
 
 	//TODO read args
 

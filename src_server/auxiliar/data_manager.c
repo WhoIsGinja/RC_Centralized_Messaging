@@ -14,7 +14,9 @@
 #define USERS "data_server/USERS"
 #define GROUPS "data_server/GROUPS"
 
+//* Uid to filter group
 char f_uid[6];
+
 
 void init_server_data()
 {
@@ -36,6 +38,8 @@ void init_server_data()
         exit(1);
     }
 }
+
+
 
 //* User Management
 int check_pass(const char *uid, const char *pass)
@@ -66,6 +70,7 @@ int check_pass(const char *uid, const char *pass)
 
     return OK;
 }
+
 
 int user_create(const char *uid, const char *pass)
 {
@@ -133,6 +138,7 @@ int user_create(const char *uid, const char *pass)
     return OK;
 }
 
+
 int user_delete(const char *uid, const char *pass)
 {
     char buffer[BUFFER_SIZE];
@@ -169,6 +175,7 @@ int user_delete(const char *uid, const char *pass)
     return OK;
 }
 
+
 int user_entry(const char *uid, const char *pass, bool login)
 {
     char buffer[BUFFER_SIZE];
@@ -201,6 +208,7 @@ int user_entry(const char *uid, const char *pass, bool login)
     return OK;
 }
 
+
 int user_logged(const char *uid)
 {
     char buffer[BUFFER_SIZE];
@@ -217,6 +225,8 @@ int user_logged(const char *uid)
 
     return OK;
 }
+
+
 
 //* Groups Management
 int group_create(const char *uid, const char *gname)
@@ -338,6 +348,7 @@ int group_create(const char *uid, const char *gname)
     return NEW + gnum;
 }
 
+
 int group_add(const char *uid, const char *gid, const char *gname)
 {
     FILE *f;
@@ -383,6 +394,7 @@ int group_add(const char *uid, const char *gid, const char *gname)
     return OK;
 }
 
+
 int group_remove(const char* uid, const char* gid)
 {
     char buffer[BUFFER_SIZE];
@@ -405,7 +417,8 @@ int group_remove(const char* uid, const char* gid)
     return OK;
 }
 
-//* Flters groups 
+
+//* Filters groups 
 int filter_groups(const struct dirent *entry)
 {   
     char buffer[BUFFER_SIZE];
@@ -422,6 +435,7 @@ int filter_groups(const struct dirent *entry)
 
    return 1;
 }
+
 
 int groups_get(char **glist, const char *uid)
 {
@@ -521,7 +535,8 @@ int groups_get(char **glist, const char *uid)
 }
 
 
-int group_msg_add(char const *uid, char const *gid, char *text)
+//TODO
+int group_msg_add(const char* uid, const char* gid, const char *text)
 {
     DIR *d;
     FILE *f;
@@ -650,7 +665,15 @@ int group_msg_add(char const *uid, char const *gid, char *text)
     return mnum;
 }
 
-int group_msg_add_file(char const *mid, char const* filename, char const* data){
+//TODO
+int group_msg_remove(const char* gid, const char* mid)
+{
+    return OK;
+}
+
+//TODO
+int group_msg_add_file(const char* gid, const char* mid, const char* filename, char* pathname)
+{
     return OK;
 }
 
