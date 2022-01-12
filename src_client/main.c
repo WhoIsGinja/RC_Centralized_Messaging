@@ -263,14 +263,14 @@ void post()
     text = strtok(NULL, "\"");
     filename = strtok(NULL, "\0");
 
-    sprintf(post, "PST %s %s %ld %s", user.uid, user.gid, strlen(text), text);
+    sprintf(post, "PST %s %s %ld %s\n", user.uid, user.gid, strlen(text), text);
     if (filename == NULL)
     {
         tcp_send(DSIP, DSport, post, strlen(post), NULL);
     }
     else
     {
-        tcp_send(DSIP, DSport, post, strlen(post), ++filename);
+        tcp_send(DSIP, DSport, post, strlen(post) - 1, ++filename);
     }
 }
 

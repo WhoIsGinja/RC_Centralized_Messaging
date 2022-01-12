@@ -10,7 +10,8 @@
 #include "data_manager.h"
 #include "../../protocol_constants.h"
 
-#define BUFFER_SIZE 64
+#define BUFFER_T1 64
+#define BUFFER_T2 1024
 #define USERS "data_server/USERS"
 #define GROUPS "data_server/GROUPS"
 
@@ -44,7 +45,7 @@ void init_server_data()
 //* User Management
 int check_pass(const char *uid, const char *pass)
 {
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T1];
     FILE *f = NULL;
 
     //*Get password
@@ -74,7 +75,7 @@ int check_pass(const char *uid, const char *pass)
 
 int user_create(const char *uid, const char *pass)
 {
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T1];
     FILE *f = NULL;
 
     // *Create user directory
@@ -141,7 +142,7 @@ int user_create(const char *uid, const char *pass)
 
 int user_delete(const char *uid, const char *pass)
 {
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T1];
 
     if (check_pass(uid, pass) == NOK)
     {
@@ -178,7 +179,7 @@ int user_delete(const char *uid, const char *pass)
 
 int user_entry(const char *uid, const char *pass, bool login)
 {
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T1];
     FILE *f = NULL;
 
     if (check_pass(uid, pass) == NOK)
@@ -211,7 +212,7 @@ int user_entry(const char *uid, const char *pass, bool login)
 
 int user_logged(const char *uid)
 {
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T1];
 
     sprintf(buffer, "%s/%s/%s_login.txt", USERS, uid, uid);
     if (access(buffer, F_OK) != 0)
@@ -233,7 +234,7 @@ int group_create(const char *uid, const char *gname)
 {
     DIR *d;
     FILE *f;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T1];
     int gnum, status;
 
     if ((d = opendir(GROUPS)) == NULL)
@@ -352,7 +353,7 @@ int group_create(const char *uid, const char *gname)
 int group_add(const char *uid, const char *gid, const char *gname)
 {
     FILE *f;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T1];
     char name[32];
 
     //* Check valid gid
@@ -397,7 +398,7 @@ int group_add(const char *uid, const char *gid, const char *gname)
 
 int group_remove(const char* uid, const char* gid)
 {
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T1];
 
     //* Check valid gid
     sprintf(buffer, "%s/%s", GROUPS, gid);
@@ -421,7 +422,7 @@ int group_remove(const char* uid, const char* gid)
 //* Filters groups 
 int filter_groups(const struct dirent *entry)
 {   
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T2  ];
     if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
     {
         return 0;
@@ -442,8 +443,8 @@ int groups_get(char **glist, const char *uid)
     struct dirent **groups;
     struct dirent **msgs;
     FILE* f;
-    int i, gnum, mnum, gcount;
-    char buffer[BUFFER_SIZE];
+    int i, gnum, mnum;
+    char buffer[BUFFER_T2];
     char gname[25];
 
     setvbuf(stdout, NULL, _IONBF, 0);
@@ -540,7 +541,7 @@ int group_msg_add(const char* uid, const char* gid, const char *text)
 {
     DIR *d;
     FILE *f;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_T1];
     int mnum;
 
     //* Check valid gid
@@ -672,7 +673,7 @@ int group_msg_remove(const char* gid, const char* mid)
 }
 
 //TODO
-int group_msg_add_file(const char* gid, const char* mid, const char* filename, char* pathname)
+int group_msg_file(const char* gid, const char* mid, const char* filename, char* pathname)
 {
     return OK;
 }

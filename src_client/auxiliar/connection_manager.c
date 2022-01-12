@@ -157,9 +157,9 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 {
 	struct addrinfo hints, *res;
 	int n, errcode;
-	unsigned long long fsize;
+	long long fsize;
 	FILE *f;
-	char buffer[1024];
+	char buffer[BUFFER_TCP];
 
 	fd = socket(AF_INET, SOCK_STREAM, 0);
 	if (fd == -1)
@@ -247,7 +247,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 
 
 //* Read n - 1 bytes or less, last byte always a null char(TCP)
-int read_nbytes(char *buffer, int *nread, int nbytes)
+int read_nbytes(char *buffer, ssize_t *nread, int nbytes)
 {
 	char *ptr;
 	int n;
@@ -296,7 +296,7 @@ int read_nbytes(char *buffer, int *nread, int nbytes)
 
 int receive_message_tcp()
 {
-	int nread;
+	ssize_t nread;
 	int status;
 	char *token;
 	char buffer[BUFFER_TCP];

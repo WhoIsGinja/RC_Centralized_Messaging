@@ -370,12 +370,57 @@ void udp_communication(const char *port)
 int connfd;
 
 
+//* Read n - 1 bytes or less, last byte always a null char(TCP)
+int read_nbytes(char *buffer, ssize_t *nread, int nbytes)
+{
+	char *ptr;
+	int n;
+	int nleft;
+
+	nleft = nbytes - 1;
+	ptr = buffer;
+
+	while (nleft > 0)
+	{
+		//.FIXME error
+		if ((n = read(connfd, ptr, nleft)) == -1)
+		{
+			fprintf(stderr, "[!]Error receiving from server: %s\n", strerror(errno));
+			return ERR;
+		}
+
+		if (n == 0)
+		{
+			*nread = nbytes - 1 - nleft;
+
+			if (buffer[*nread - 1] == '\n')
+			{
+				buffer[*nread - 1] = '\0';
+			}
+			else
+			{
+				fprintf(stderr, "[!]Server doesn't follow protocol\n");
+				return ERR;
+			}
+
+			return OK;
+		}
+
+		nleft -= n;
+		ptr += n;
+	}
+
+	*nread = nbytes - 1 - nleft;
+	buffer[*nread++] = '\0';
+
+	return NOK;
+}
+
+
+
 //* Gets user from the selected group
 int uls()
 {
-	char *gid;
-	gid = strtok(NULL, " ");
-
 	return OK;
 }
 
@@ -406,7 +451,7 @@ int post_msg(char* gid, char *mid, char *file)
 		file = text + tsize + 1;
 	}
 
-	status = groups_msg_add(uid, gid, text, mid);
+	status = group_msg_add(uid, gid, text);
 
 	return status;
 }
@@ -418,14 +463,14 @@ int post_file(const char* gid, const char *mid, char *file)
 	FILE *f;
 	char pathname[64];
 	char buffer[BUFFER_TCP];
-	unsigned long long fsize;
-	int status, n;
-
+	long long fsize;
+	ssize_t n;
+	int status;
 
 	filename = strtok(file, " ");
-	fsize = strtoull(strtok(NULL, " "), NULL, 0);
+	fsize = strtoll(strtok(NULL, " "), NULL, 0);
 
-	status = groups_msg_file_create(connfd, gid, mid, fsize, filename, pathname);
+	status = group_msg_file(gid, mid, filename, pathname);
 
 	if(status != OK)
 	{
@@ -473,7 +518,7 @@ void tcp_commands(char *buffer, int nread)
 		if (!regex_test("^ULS [[:digit:]]{2}$", buffer))
 		{
 			sprintf(buffer, "RUL %s\n", strstatus(NOK));
-			return NOK;
+			return;
 		}
 
 		strtok(buffer, " ");
@@ -484,7 +529,7 @@ void tcp_commands(char *buffer, int nread)
 	{
 		char mid[5];
 		char gid[3];
-		char *file;
+		char *file = NULL;
 
 		if (!regex_test("^RPT [[:digit:]]{5} [[:digit:]]{2} ([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-3][0-9]|240) .{1,240}", buffer))
 		{
@@ -534,51 +579,6 @@ void tcp_commands(char *buffer, int nread)
 	exit(0);
 }
 
-//* Read n - 1 bytes or less, last byte always a null char(TCP)
-int read_nbytes(char *buffer, int *nread, int nbytes)
-{
-	char *ptr;
-	int n;
-	int nleft;
-
-	nleft = nbytes - 1;
-	ptr = buffer;
-
-	while (nleft > 0)
-	{
-		//.FIXME error
-		if ((n = read(connfd, ptr, nleft)) == -1)
-		{
-			fprintf(stderr, "[!]Error receiving from server: %s\n", strerror(errno));
-			return ERR;
-		}
-
-		if (n == 0)
-		{
-			*nread = nbytes - 1 - nleft;
-
-			if (buffer[*nread - 1] == '\n')
-			{
-				buffer[*nread - 1] = '\0';
-			}
-			else
-			{
-				fprintf(stderr, "[!]Server doesn't follow protocol\n");
-				return ERR;
-			}
-
-			return OK;
-		}
-
-		nleft -= n;
-		ptr += n;
-	}
-
-	*nread = nbytes - 1 - nleft;
-	buffer[*nread++] = '\0';
-
-	return NOK;
-}
 
 //* Manage tcp comunication with client
 void tcp_communication(const char *port)
