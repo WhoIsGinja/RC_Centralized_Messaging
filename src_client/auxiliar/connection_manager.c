@@ -104,6 +104,9 @@ int receive_message_udp()
 
 	buffer[n - 1] = '\0';
 
+	//.DELETE
+	write(1,"[<]",3);write(1,buffer, strlen(buffer));write(1,"\n",1);
+
 	rcmd = strtok(buffer, " ");
 
 	//TODO verify everything ????
@@ -306,8 +309,11 @@ int receive_message_tcp()
 		return NOK;
 	}
 
+	//.DELETE
+	write(1,"[<]",3);write(1, buffer, strlen(buffer));write(1,"\n",1);
+
 	//* Ulist
-	if (regex_test("^RUL (OK|NOK) [^ ]", buffer))
+	if (regex_test("^RUL (NOK$|OK [^ ])", buffer))
 	{	
 		int ulistLeft;
 		int ulistSize;
@@ -377,13 +383,13 @@ int receive_message_tcp()
 
 
 	//* Post
-	else if (regex_test("^RPT (OK|NOK)\\\n", buffer))
+	else if (regex_test("^RPT (NOK|[[:digit:]]{4})$", buffer))
 	{
 		
 	}
 
 	//* Retrieve
-	else if (regex_test("^RRT (OK|NOK) [^ ]", buffer))
+	else if (regex_test("^RRT (NOK$|EOF$|OK [^ ])", buffer))
 	{
 
 	}

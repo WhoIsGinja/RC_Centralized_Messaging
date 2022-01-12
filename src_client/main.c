@@ -236,7 +236,7 @@ void ulist()
     }
 
     //* Check if there is a selected group
-    if (user.gid == 0)
+    if (user.gid[0] == 0)
     {
         fprintf(stderr, "[!]No group selected\n");
         return;
@@ -257,6 +257,12 @@ void post()
     if (user.logged == false)
     {
         fprintf(stderr, "[!]No user logged in\n");
+        return;
+    }
+    //* Check if there is a selected group
+    if (user.gid[0] == 0)
+    {
+        fprintf(stderr, "[!]No group selected\n");
         return;
     }
 
@@ -280,9 +286,16 @@ void retrieve()
     char message[MESSAGE_SIZE];
     char *mid;
 
+    //* Check if there is no login
     if (user.logged == false)
     {
         fprintf(stderr, "[!]No user logged in\n");
+        return;
+    }
+    //* Check if there is a selected group
+    if (user.gid[0] == 0)
+    {
+        fprintf(stderr, "[!]No group selected\n");
         return;
     }
 
@@ -306,13 +319,13 @@ int main(int argc, char *argv[])
     memset(user.gid, 0, 3);
 
     //* Initialize base address
-    /*if (gethostname(buffer, sizeof(buffer)) == -1)
+    if (gethostname(buffer, sizeof(buffer)) == -1)
     {
         fprintf(stderr, "[!]Getting host name\n");
     }
-    strcpy(DSIP, buffer);*/
-    strcpy(DSIP, "tejo.tecnico.ulisboa.pt");
-    strcpy(DSport, "58011");
+    strcpy(DSIP, buffer);
+    //strcpy(DSIP, "tejo.tecnico.ulisboa.pt");
+    strcpy(DSport, "58005");
 
     while ((opt = getopt(argc, argv, ":n:p:")) != -1)
     {
@@ -335,12 +348,12 @@ int main(int argc, char *argv[])
         }
     }
 
-    printf("[=]Connection with server at %s:%s\n", DSIP, DSport);
+    printf("[=]Connection with server at %s:%s\n\n", DSIP, DSport);
 
     while (true)
     {
         //*Get command
-        printf(">");
+        printf("[>]");
         fgets(buffer, sizeof(buffer), stdin);
         buffer[strlen(buffer) - 1] = '\0';
 
@@ -368,7 +381,7 @@ int main(int argc, char *argv[])
             logout();
         }
         //*Show user id
-        else if (regex_test("^su|showuid$", buffer))
+        else if (regex_test("^(su|showuid)$", buffer))
         {
             showuid();
         }
@@ -378,7 +391,7 @@ int main(int argc, char *argv[])
             exit(0);
         }
         //*Show all groups
-        else if (regex_test("^gl|groups$", buffer))
+        else if (regex_test("^(gl|groups)$", buffer))
         {
             groups();
         }
@@ -395,7 +408,7 @@ int main(int argc, char *argv[])
             unsubscribe();
         }
         //*Show all the groups that the user is in
-        else if (regex_test("^mgl|my_groups$", buffer))
+        else if (regex_test("^(mgl|my_groups)$", buffer))
         {
             my_groups();
         }
@@ -406,12 +419,12 @@ int main(int argc, char *argv[])
             sag();
         }
         //*Show current group id
-        else if (regex_test("^sg|showgid$", buffer))
+        else if (regex_test("^(sg|showgid)$", buffer))
         {
             showgid();
         }
         //*Show all user of the selected group
-        else if (regex_test("^ul|ulist$", buffer))
+        else if (regex_test("^(ul|ulist)$", buffer))
         {
             ulist();
         }
