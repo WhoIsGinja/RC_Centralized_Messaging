@@ -309,11 +309,8 @@ int receive_message_tcp()
 		return NOK;
 	}
 
-	//.DELETE
-	write(1,"[<]",3);write(1, buffer, strlen(buffer));write(1,"\n",1);
-
 	//* Ulist
-	if (regex_test("^RUL (NOK$|OK [^ ])", buffer))
+	if (regex_test("^RUL (OK|NOK) [^ ]", buffer))
 	{	
 		int ulistLeft;
 		int ulistSize;
@@ -383,55 +380,189 @@ int receive_message_tcp()
 
 
 	//* Post
-	else if (regex_test("^RPT (NOK|[[:digit:]]{4})$", buffer))
+	else if (regex_test("^RPT ([[:digit:]]{4}$|NOK)", buffer))
 	{
+		strtok(buffer, " ");
+		token = strtok(NULL, " ");
+		if(strcmp("NOK", token) == 0)
+		{
+			printf("[-]Unable to post\n");
+			return NOK;
+		}
+
+		printf("[-]Post sent successfully: %s\n", token);
+		
 		
 	}
 
 	//* Retrieve
 	else if (regex_test("^RRT (NOK$|EOF$|OK [^ ])", buffer))
 	{
+		char *filename, *data;
+		FILE *f;
+		char aux[BUFFER_TCP];
+		long long fsize;
+		ssize_t n;
+		int status;
+		int messages, state;
+		char mid[4], uid[5];
+		char *txtsize, *filesize;
+		int i, tsize, fsize;
+		int ti, fi;
 
-	}
-	else
-	{
-		fprintf(stderr, "[!]Response doesn't follow protocol");
-	}
-
-	/*if (strncmp(buffer, "RRT", 3) ==)
-	{
-		while ((c = buffer[i]) != '\n')
+		strtok(buffer, " ");
+		token = strtok(NULL, " ");
+		if(strcmp("NOK", token) == 0)
 		{
-			switch (state)
+			printf("[-]Unable to post\n");
+			return NOK;
+		}
+		else if(strcmp("EOF", token) == 0)
+		{
+			printf("[-]No messages available");
+			return EOF;
+		}
+		
+		messages = atoi(strtok(NULL, " ");
+
+
+		printf("-");
+		while(buffer[i] != '\n')
+		{
+			if(state == 0 && buffer[i] == ' ')
 			{
-			case 0:
+				state = 1;
+				printf(" uid: ");
+			}
+			else if(state == 1 && buffer[i] == ' ')
+			{
+				state = 2;
+			}
+			else if(state == 2 && strlen(txtsize) <= 3 && buffer[i] == ' ')
+			{
+				tsize = atoi(txtsize);
 
-				break;
+				state = 3;
+				printf(" text: ");
+			}
+			else if(state == 3 && tsize == 0 && buffer[i] == ' ')
+			{
+				state = 4;
+			}
+			else if(state == 4 && buffer[i] >= '0' && buffer[i] <= '9')
+			{
+				state = 0;
+				printf("\n-");
+			}
+			else if(state == 4 && buffer[i] == '/')
+			{
+				state = 5;
+				printf(" file name: ");
+			}
+			else if(state == 5 && buffer[i] == ' ')
+			{
+				state = 6;
+			}
 
-			default:
-				break;
+			else if(state == 6 && strlen(filesize) <= 10 && buffer[i] == ' ')
+			{
+				fsize = strtoll(filesize, NULL, 0);
+				state = 7;
+				printf(" file size: %ld", fsize);
+			}
+			else if(state == 7 && tsize == 0 && buffer[i] == ' ')
+			{
+				state = 0;
+				printf("\n-");
+			}
+
+			switch(state)
+			{
+				case 0:
+					if(buffer[i] == ' ')
+					{
+						break;
+					}
+					
+
+					break;
+				case 1:
+					if(buffer[i] == ' ')
+					{
+						break;
+					}
+				case 2:
+					if(buffer[i] == ' ' && strlen(txtsize) > 0)
+					{
+						break;
+					}
+					
+					break;
+				case 3:
+					if(buffer[i] == ' ' && tsize > 0)
+					{
+						break;
+					}
+					
+					break;
+				default:
+					break;
 			}
 
 			i++;
+			//*When buffer is all read
 			if (i == n)
 			{
 				memset(buffer, 0, sizeof(buffer));
-				if ((n = read(fd, buffer, sizeof(buffer))) == -1)
+				if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
 				{
-					fprintf(stderr, "Error receiving from server\n");
+					fprintf(stderr, "[!]Error receiving from server\n");
 					return NOK;
 				}
 
 				i = 0;
 			}
 		}
-	}*/
+
+
+		else
+		{
+			fprintf(stderr, "[!]Response doesn't follow protocol");
+		}
+
+		/*if (strncmp(buffer, "RRT", 3) ==)
+		{
+			while ((c = buffer[i]) != '\n')
+			{
+				switch (state)
+				{
+				case 0:
+
+					break;
+
+				default:
+					break;
+				}
+
+				i++;
+				if (i == n)
+				{
+					memset(buffer, 0, sizeof(buffer));
+					if ((n = read(fd, buffer, sizeof(buffer))) == -1)
+					{
+						fprintf(stderr, "Error receiving from server\n");
+						return NOK;
+					}
+
+					i = 0;
+				}
+		}*/
+	}
 
 	//TODO retrieve
 
 	return OK;
 }
-
 
 int tcp_send(const char *ds_ip, const char *ds_port, char *message, int size, char *filename)
 {
