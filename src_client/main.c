@@ -25,7 +25,6 @@ struct user_info user;
 char DSIP[IP_SIZE];
 char DSport[PORT_SIZE];
 
-
 //* Register user
 void reg()
 {
@@ -199,7 +198,6 @@ void sag()
 
     gid = strtok(NULL, " ");
 
-
     sprintf(user.gid, "%s", gid);
 }
 
@@ -252,7 +250,7 @@ void post()
 {
     char *text, *textend;
     char *filename = NULL;
-    char* i;
+    char *i;
     char post[POST_SIZE];
 
     //* Check if there is no login
@@ -272,7 +270,7 @@ void post()
     textend = rindex(++text, '\"');
     textend[0] = '\0';
 
-    if(textend[1] == ' ')
+    if (textend[1] == ' ')
     {
         filename = textend + 2;
     }
@@ -314,7 +312,6 @@ void retrieve()
     tcp_send(DSIP, DSport, message, strlen(message), NULL);
 }
 
-//TODO messages
 int main(int argc, char *argv[])
 {
     int opt;
@@ -438,7 +435,7 @@ int main(int argc, char *argv[])
         }
         //*Send a messge to group
         else if (regex_test("^post \".{1,240}\"( [[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3})?$", buffer))
-        {   
+        {
             strtok(buffer, " ");
             post();
         }

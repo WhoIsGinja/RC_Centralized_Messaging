@@ -250,47 +250,36 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 
 
 //* Read n - 1 bytes or less, last byte always a null char(TCP)
-int read_nbytes(char *buffer, ssize_t *nread, int nbytes)
+int read_nbytes(char *start, ssize_t *nread, int nbytes)
 {
 	char *ptr;
-	int n;
-	int nleft;
+	int n, nleft;
 
 	nleft = nbytes - 1;
-	ptr = buffer;
+	ptr = start;
 
 	while (nleft > 0)
 	{
-		//.FIXME error
 		if ((n = read(fd, ptr, nleft)) == -1)
 		{
-			fprintf(stderr, "[!]Error receiving from server: %s\n", strerror(errno));
+			fprintf(stderr, "[!]Error receiving from client: %s\n", strerror(errno));
 			return ERR;
 		}
 
-		//* Message has ended
-		if (ptr[n-1] == '\n')
+		if (ptr[n - 1] == '\n')
 		{
 			nleft -= n;
 			*nread = nbytes - 1 - nleft;
-			ptr[n-1] = '\0';
-
+			start[*nread + 1] = '\0';
 			return OK;
-		}
-		//* Connextion closed without '\n'
-		else if(n == 0)
-		{
-			fprintf(stderr, "[!]Server doesn't follow protocol for communication\n");
-			return ERR;
 		}
 
 		nleft -= n;
 		ptr += n;
-
 	}
 
 	*nread = nbytes - 1 - nleft;
-	buffer[*nread++] = '\0';
+	start[*nread + 1] = '\0';
 
 	return NOK;
 }
@@ -309,17 +298,19 @@ int receive_message_tcp()
 	}
 
 	//* Ulist
-	if (regex_test("^RUL (OK|NOK) [^ ]", buffer))
+	if (regex_test("^RUL (OK|NOK\\\n$)( [^ ])?", buffer))
 	{	
 		int ulistLeft;
 		int ulistSize;
 		char *ulist;
 
+		
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
-		if (istatus(token) == NOK)
-		{
-			printf("[-]Group doesn't exist\n");
+
+		if (token[strlen(token)-1] == '\n')
+		{	
+			printf("[<]Group doesn't exist\n");
 			return NOK;
 		}
 
@@ -361,14 +352,15 @@ int receive_message_tcp()
 		//* Check format
 		if (!regex_test("^[[:alnum:]_-]{1,24}( [[:digit:]]{5})*", ulist))
 		{
-			fprintf(stderr,"[-]Server doesn't follow protocol\n");
+			fprintf(stderr,"[<]Server doesn't follow protocol\n");
 			free(ulist);
 			return NOK;
 		}
 
 		//* Print output
+		ulist[strlen(ulist) - 1] = '\0';
 		token = strtok(ulist, " ");
-		printf("[-]Users of group %s:\n", token);
+		printf("[<]Users of group %s:\n", token);
 		while ((token = strtok(NULL, " ")) != NULL)
 		{
 			printf("-%s\n", token);
@@ -377,27 +369,26 @@ int receive_message_tcp()
 		free(ulist);
 	}
 
-
 	//* Post
-	else if (regex_test("^RPT ([[:digit:]]{4}$|NOK)", buffer))
+	else if (regex_test("^RPT ([[:digit:]]{4}|NOK)\\\n$", buffer))
 	{
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
 		if(strcmp("NOK", token) == 0)
 		{
-			printf("[-]Unable to post\n");
+			printf("[<]Unable to post\n");
 			return NOK;
 		}
 
-		printf("[-]Post sent successfully: %s\n", token);
+		printf("[<]Post sent successfully: %s\n", token);
 		
 		
 	}
 
 	//* Retrieve
-	else if (regex_test("^RRT (NOK$|EOF$|OK [^ ])", buffer))
+	else if (regex_test("^RRT (NOK\\\n$|EOF\\\n$|OK [^ ])", buffer))
 	{
-		char *filename, *data;
+		/* char *filename, *data;
 		FILE *f;
 		char aux[BUFFER_TCP];
 		long long fsize;
@@ -509,7 +500,7 @@ int receive_message_tcp()
 			}
 
 			i++;
-			//*When buffer is all read
+			//When buffer is all read
 			if (i == n)
 			{
 				memset(buffer, 0, sizeof(buffer));
@@ -527,7 +518,7 @@ int receive_message_tcp()
 		else
 		{
 			fprintf(stderr, "[!]Response doesn't follow protocol");
-		}
+		} */
 
 		/*if (strncmp(buffer, "RRT", 3) ==)
 		{
@@ -558,7 +549,6 @@ int receive_message_tcp()
 		}*/
 	}
 
-	//TODO retrieve
 
 	return OK;
 }
