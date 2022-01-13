@@ -34,15 +34,6 @@ int TimerON(int sd)
 	return (setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tmout, sizeof(struct timeval)));
 }
 
-//* Sets socket timer off
-int TimerOFF(int sd)
-{
-	struct timeval tmout;
-	memset((char *)&tmout, 0, sizeof(tmout));
-
-	return (setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tmout, sizeof(struct timeval)));
-}
-
 //* Test str with rule
 bool regex_test(const char *rule, const char *str)
 {
@@ -400,10 +391,10 @@ void udp_communication()
 			return;
 		}
 
-		printf("[?]From %s:%d->", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port), buffer);
-
 		if (fork() == 0)
 		{
+			printf("[?]From %s:%d->", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
+
 			if (buffer[n - 1] == '\n')
 			{
 				buffer[n - 1] = '\0';
@@ -451,7 +442,7 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
 	{
 		if ((n = read(connfd, ptr, nleft)) == -1)
 		{
-			fprintf(stderr, "[!]Error receiving from server: %s\n", strerror(errno));
+			fprintf(stderr, "[!]Error receiving from client: %s\n", strerror(errno));
 			return ERR;
 		}
 
@@ -474,9 +465,16 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
 }
 
 //* Gets user from the selected group
-int uls()
+int uls(char **ulist)
 {
-	return OK;
+	char *gid;
+
+	gid = strtok(NULL, "");
+	gid[strlen(gid) - 1] = '\0';
+
+	printf("User list for %s\n", gid);
+
+	return group_users(ulist, gid);
 }
 
 //* Create the text message
@@ -492,6 +490,8 @@ int post_msg(char *gid, char *mid, char **fileinfo)
 	strcpy(gid, strtok(NULL, " "));
 	tsize = atoi(strtok(NULL, " "));
 	text = strtok(NULL, "");
+
+	printf("Post on %s by %s\n", gid, uid);
 
 	//* Check if user is logged on
 	if (user_logged(uid) != OK)
@@ -595,11 +595,13 @@ int retrieve()
 //* Executes received tcp command
 void tcp_commands(char *buffer, int nread)
 {
-	int status;
+	int status, n;
 
 	//* Ulist
 	if (regex_test("^ULS ", buffer))
 	{
+		char *ulist;
+
 		if (!regex_test("^ULS [[:digit:]]{2}\\\n$", buffer))
 		{
 			printf("Users list bad request\n");
@@ -607,9 +609,33 @@ void tcp_commands(char *buffer, int nread)
 			return;
 		}
 
-		/* strtok(buffer, " ");
-		status = uls(); */
-		sprintf(buffer, "RUL %s\n", strstatus(OK));
+		strtok(buffer, " ");
+		status = uls(&ulist);
+		if (status == NOK)
+		{
+			sprintf(buffer, "RUL %s\n", strstatus(OK));
+			return;
+		}
+		else
+		{
+			sprintf(buffer, "RUL %s ", strstatus(OK));
+			if ((n = write(connfd, buffer, strlen(buffer))) == -1)
+			{
+				fprintf(stderr, "[!]Sending to client: %s\n", strerror(errno));
+				close(connfd);
+				free(ulist);
+				exit(1);
+			}
+
+			strcat(ulist, "\n");
+			if ((n = write(connfd, ulist, strlen(ulist))) == -1)
+			{
+				fprintf(stderr, "[!]Sending to client: %s\n", strerror(errno));
+				close(connfd);
+				free(ulist);
+				exit(1);
+			}
+		}
 	}
 	//* Post
 	else if (regex_test("^PST ", buffer))
@@ -696,7 +722,6 @@ void tcp_communication()
 	struct addrinfo *res;
 	struct sockaddr_in addr;
 	char buffer[BUFFER_TCP];
-	int childp = 0;
 	socklen_t addrlen = sizeof(addr);
 
 	fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -744,13 +769,13 @@ void tcp_communication()
 			return;
 		}
 
-		printf("[?]From %s:%d->", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port), buffer);
-
 		if (fork() == 0)
 		{
 			int status;
 
 			TimerON(connfd);
+
+			printf("[?]From %s:%d->", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
 
 			status = read_nbytes(buffer, &n, BUFFER_TCP);
 
@@ -760,6 +785,7 @@ void tcp_communication()
 			}
 			else
 			{
+				printf("Bad request\n");
 				sprintf(buffer, "%s\n", strstatus(ERR));
 			}
 
@@ -785,12 +811,13 @@ int main(int argc, char *argv[])
 	pid_t child_pid;
 	int opt;
 	struct sigaction act;
+	char buffer[512];
 
 	//* Default
 	strcpy(port, "58005");
 	bool verbose = false;
 
-	while ((opt = getopt(argc, argv, ":n:p:")) != -1)
+	while ((opt = getopt(argc, argv, ":vp:")) != -1)
 	{
 		switch (opt)
 		{
@@ -836,6 +863,8 @@ int main(int argc, char *argv[])
 
 	//* Create server data
 	init_server_data();
+
+	setvbuf(stdout, buffer, _IOLBF, sizeof(buffer));
 
 	child_pid = fork();
 	if (child_pid == 0)

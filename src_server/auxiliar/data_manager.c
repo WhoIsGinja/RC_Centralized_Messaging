@@ -17,6 +17,8 @@
 
 //* Uid to filter group
 char f_uid[6];
+//* Gid to filter users
+char f_gid[3];
 
 void init_server_data()
 {
@@ -521,7 +523,83 @@ int groups_get(char **glist, const char *uid)
     return OK;
 }
 
-int group_msg_add(const char *uid, const char *gid, const char *text, char* mid)
+//* Filter users
+int filter_users(const struct dirent *entry)
+{
+    char buffer[BUFFER_64B];
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, "MSG") == 0)
+    {
+        return 0;
+    }
+
+    sprintf(buffer, "%s_name.txt", f_gid);
+
+    return (strcmp(entry->d_name, buffer) != 0);
+}
+
+int group_users(char** ulist, const char *gid)
+{
+    struct dirent **users;
+    FILE* f;
+    char buffer[BUFFER_1KB];
+    int i, unum;
+
+    strcpy(f_gid, gid);
+
+    //* Check valid gid
+    sprintf(buffer, "%s/%s", GROUPS, gid);
+    if (access(buffer, F_OK) != 0)
+    {
+        return NOK;
+    }
+
+    //* Get users
+    if ((unum = scandir(buffer, &users, filter_users, alphasort)) == -1)
+    {
+        fprintf(stderr, "[!]Getting users: %s\n", strerror(errno));
+        *ulist = NULL;
+        return NOK;
+    }
+
+    //* Allocate memory for list
+    if ((*ulist = (char *)calloc(32 + unum * 6, sizeof(char))) == NULL)
+    {
+        free(users);
+        fprintf(stderr, "[!]Allocating memory for response\n");
+        free(users);
+        return NOK;
+    }
+
+    //* Get group name
+    sprintf(buffer, "%s/%s/%s_name.txt", GROUPS, gid, gid);
+    if ((f = fopen(buffer, "r")) == NULL)
+    {
+        fprintf(stderr, "[!]Opening group(%s) name file: %s\n", gid, strerror(errno));
+        free(*ulist);
+        free(users);
+        return NOK;
+    }
+    if (fgets(*ulist, sizeof(buffer), f) == NULL)
+    {
+        fprintf(stderr, "[!]Reading group(%s) name\n", gid);
+        free(*ulist);
+        free(users);
+        fclose(f);
+        return NOK;
+    }
+    fclose(f);
+
+    //* Build list
+    for (i = 0; i < unum; i++)
+    {
+        strcat(*ulist, " ");
+        strncat(*ulist, users[i]->d_name, 5);
+    }
+
+    return OK;
+}
+
+int group_msg_add(const char *uid, const char *gid, const char *text, char *mid)
 {
     DIR *d;
     FILE *f;
@@ -658,19 +736,34 @@ int group_msg_add(const char *uid, const char *gid, const char *text, char* mid)
     return OK;
 }
 
-//TODO
 int group_msg_remove(const char *gid, const char *mid)
 {
     char buffer[BUFFER_64B];
-    //.FIXME lazy imp(DANGEROUS!)
-    sprintf(buffer, "rm -rf %s/%s/MSG/%s",GROUPS, gid, mid);
 
-    system(buffer);
+    sprintf(buffer, "%s/%s/MSG/%s/A U T H O R.txt", GROUPS, gid, mid);
+    if (remove(buffer) == -1)
+    {
+        fprintf(stderr, "[!]Deleting author file of %s(%s): %s\n", gid, mid, strerror(errno));
+        return NOK;
+    }
+
+    sprintf(buffer, "%s/%s/MSG/%s/T E X T.txt", GROUPS, gid, mid);
+    if (remove(buffer) == -1)
+    {
+        fprintf(stderr, "[!]Deleting text file %s(%s): %s\n", gid, mid, strerror(errno));
+        return NOK;
+    }
+
+    sprintf(buffer, "%s/%s/MSG/%s", GROUPS, gid, mid);
+    if (remove(buffer) == -1)
+    {
+        fprintf(stderr, "[!]Deleting message(%s) of %s: %s\n", mid, gid, strerror(errno));
+        return NOK;
+    }
 
     return OK;
 }
 
-//TODO
 int group_msg_file(const char *gid, const char *mid, const char *filename, char *pathname)
 {
     char buffer[BUFFER_64B];

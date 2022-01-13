@@ -113,7 +113,7 @@ void showuid()
         return;
     }
 
-    printf("[-]Current user ID: %s\n", user.uid);
+    printf("[<]Current user ID: %s\n", user.uid);
 }
 
 //* Show all groups
@@ -199,6 +199,8 @@ void sag()
     gid = strtok(NULL, " ");
 
     sprintf(user.gid, "%s", gid);
+
+    printf("[<]Selected group %s\n", gid);
 }
 
 //* Show current selected group
@@ -218,7 +220,7 @@ void showgid()
         return;
     }
 
-    printf("[-]Selected group ID: %s\n", user.gid);
+    printf("[<]Selected group ID: %s\n", user.gid);
 }
 
 //* Show all users of current selected group
@@ -250,7 +252,6 @@ void post()
 {
     char *text, *textend;
     char *filename = NULL;
-    char *i;
     char post[POST_SIZE];
 
     //* Check if there is no login

@@ -104,16 +104,13 @@ int receive_message_udp()
 
 	buffer[n - 1] = '\0';
 
-	//.DELETE
-	write(1,"[<]",3);write(1,buffer, strlen(buffer));write(1,"\n",1);
-
 	rcmd = strtok(buffer, " ");
 
-	//TODO verify everything ????
 	if (strcmp(rcmd, "RGL") == 0 || strcmp(rcmd, "RGM") == 0)
 	{
 		i = atoi(strtok(NULL, " "));
 
+		printf("[<]\n");
 		for (; i > 0; i--)
 		{
 			gid = strtok(NULL, " ");
@@ -359,6 +356,7 @@ int receive_message_tcp()
 
 		//* Print output
 		ulist[strlen(ulist) - 1] = '\0';
+		
 		token = strtok(ulist, " ");
 		printf("[<]Users of group %s:\n", token);
 		while ((token = strtok(NULL, " ")) != NULL)
@@ -374,13 +372,14 @@ int receive_message_tcp()
 	{
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
-		if(strcmp("NOK", token) == 0)
+
+		if(strncmp("NOK", token, 3) == 0)
 		{
 			printf("[<]Unable to post\n");
 			return NOK;
 		}
 
-		printf("[<]Post sent successfully: %s\n", token);
+		printf("[<]Post sent successfully: %s", token);
 		
 		
 	}
