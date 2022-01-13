@@ -747,7 +747,7 @@ int retrieve()
 		strcat(message, " ");
 
 		//* Send
-		if ((n = write(connfd, buffer, strlen(buffer)) == -1))
+		if ((n = write(connfd, message, strlen(message)) == -1))
 		{
 			fprintf(stderr, "[!]Sending to client\n");
 			free(mids);
