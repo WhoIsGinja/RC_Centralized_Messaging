@@ -508,9 +508,8 @@ int post_msg(char *gid, char *mid, char **fileinfo)
 	}
 
 	text[tsize] = '\0';
-
 	//* Message has file
-	if (text[tsize] == ' ')
+	if (text[tsize+1] != '\0')
 	{
 		*fileinfo = text + tsize + 1;
 	}

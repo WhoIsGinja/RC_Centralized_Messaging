@@ -175,7 +175,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 	errcode = getaddrinfo(ds_ip, ds_port, &hints, &res);
 	if (errcode != 0)
 	{
-		fprintf(stderr, "Error getting the server\n");
+		fprintf(stderr, "[!]Getting the server\n");
 		freeaddrinfo(res);
 		return NOK;
 	}
@@ -189,7 +189,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 
 	if ((n = write(fd, message, size) == -1))
 	{
-		fprintf(stderr, "Error sending to server\n");
+		fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
 		return NOK;
 	}
 
@@ -198,7 +198,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 	{
 		if ((f = fopen(filename, "r")) == NULL)
 		{
-			fprintf(stderr, "[!]: %s\n", strerror(errno));
+			fprintf(stderr, "[!]Opening file to send: %s\n", strerror(errno));
 			return NOK;
 		}
 
@@ -218,7 +218,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 		sprintf(buffer, " %s %lld ", filename, fsize);
 		if ((n = write(fd, buffer, strlen(buffer)) == -1))
 		{
-			fprintf(stderr, "Error sending to server\n");
+			fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
 			return NOK;
 		}
 
@@ -228,7 +228,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 			n = fread(buffer, sizeof(char), sizeof(buffer), f);
 			if ((n = write(fd, buffer, n) == -1))
 			{
-				fprintf(stderr, "Error sending to server\n");
+				fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
 				return NOK;
 			}
 		}
@@ -237,7 +237,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 
 		if ((n = write(fd, "\n", 1) == -1))
 		{
-			fprintf(stderr, "Error sending to server\n");
+			fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
 			return NOK;
 		}
 	}
