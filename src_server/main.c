@@ -507,11 +507,16 @@ int post_msg(char *gid, char *mid, char **fileinfo)
 		return NOK;
 	}
 
-	text[tsize] = '\0';
 	//* Message has file
-	if (text[tsize+1] != '\0')
+	if (text[tsize] == ' ')
 	{
+		text[tsize] = '\0';
+
 		*fileinfo = text + tsize + 1;
+	}
+	else
+	{
+		text[tsize] = '\0';
 	}
 
 	//* Create message information and text

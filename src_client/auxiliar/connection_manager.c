@@ -15,8 +15,7 @@
 #include "../../protocol_constants.h"
 
 #define BUFFER_TCP 2048
-#define UL_SIZE BUFFER_TCP*2
-
+#define UL_SIZE BUFFER_TCP * 2
 
 int fd;
 
@@ -45,8 +44,6 @@ bool regex_test(const char *rule, const char *str)
 		return false;
 	}
 }
-
-
 
 //*UDP transmissions
 int send_message_udp(const char *ds_ip, const char *ds_port, const char *message, int size)
@@ -82,7 +79,6 @@ int send_message_udp(const char *ds_ip, const char *ds_port, const char *message
 	freeaddrinfo(res);
 	return OK;
 }
-
 
 int receive_message_udp()
 {
@@ -134,7 +130,6 @@ int receive_message_udp()
 	return OK;
 }
 
-
 int udp_send(const char *ds_ip, const char *ds_port, char *message, int size)
 {
 	int status;
@@ -150,7 +145,6 @@ int udp_send(const char *ds_ip, const char *ds_port, char *message, int size)
 
 	return status;
 }
-
 
 //*TCP transmissions
 int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int size, char *filename)
@@ -245,7 +239,6 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 	return OK;
 }
 
-
 //* Read n - 1 bytes or less, last byte always a null char(TCP)
 int read_nbytes(char *start, ssize_t *nread, int nbytes)
 {
@@ -281,7 +274,6 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
 	return NOK;
 }
 
-
 int receive_message_tcp()
 {
 	ssize_t nread;
@@ -289,24 +281,23 @@ int receive_message_tcp()
 	char *token;
 	char buffer[BUFFER_TCP];
 
-	if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
+	if ((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
 	{
 		return NOK;
 	}
 
 	//* Ulist
 	if (regex_test("^RUL (OK|NOK\\\n$)( [^ ])?", buffer))
-	{	
+	{
 		int ulistLeft;
 		int ulistSize;
 		char *ulist;
 
-		
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
 
-		if (token[strlen(token)-1] == '\n')
-		{	
+		if (token[strlen(token) - 1] == '\n')
+		{
 			printf("[<]Group doesn't exist\n");
 			return NOK;
 		}
@@ -320,13 +311,13 @@ int receive_message_tcp()
 
 		//* Copy read users
 		strcpy(ulist, token);
-	
+
 		ulistLeft -= strlen(ulist) + 1;
 
 		//* If not all users have been read
 		while (status != OK)
-		{	
-			if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
+		{
+			if ((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
 			{
 				free(ulist);
 				return NOK;
@@ -334,29 +325,29 @@ int receive_message_tcp()
 
 			//* If there is more to add than space
 			while (ulistLeft < nread)
-			{				
+			{
 				ulistSize *= 2;
-				ulist = (char*) realloc(ulist, ulistSize);
-				
+				ulist = (char *)realloc(ulist, ulistSize);
+
 				ulistLeft = ulistSize - strlen(ulist) + 1;
 			}
 
 			//* Copy new users
-			strcat(ulist, buffer);	
+			strcat(ulist, buffer);
 			ulistLeft -= nread;
 		}
 
 		//* Check format
 		if (!regex_test("^[[:alnum:]_-]{1,24}( [[:digit:]]{5})*", ulist))
 		{
-			fprintf(stderr,"[<]Server doesn't follow protocol\n");
+			fprintf(stderr, "[<]Server doesn't follow protocol\n");
 			free(ulist);
 			return NOK;
 		}
 
 		//* Print output
 		ulist[strlen(ulist) - 1] = '\0';
-		
+
 		token = strtok(ulist, " ");
 		printf("[<]Users of group %s:\n", token);
 		while ((token = strtok(NULL, " ")) != NULL)
@@ -373,15 +364,13 @@ int receive_message_tcp()
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
 
-		if(strncmp("NOK", token, 3) == 0)
+		if (strncmp("NOK", token, 3) == 0)
 		{
 			printf("[<]Unable to post\n");
 			return NOK;
 		}
 
 		printf("[<]Post sent successfully: %s", token);
-		
-		
 	}
 
 	//* Retrieve
@@ -402,17 +391,17 @@ int receive_message_tcp()
 		aux = strdup(buffer);
 		strtok(aux, " ");
 		token = strtok(NULL, " ");
-		if(strcmp("NOK", token) == 0)
+		if (strcmp("NOK", token) == 0)
 		{
 			printf("[-]Unable to post\n");
 			return NOK;
 		}
-		else if(strcmp("EOF", token) == 0)
+		else if (strcmp("EOF", token) == 0)
 		{
 			printf("[-]No messages available");
 			return EOF;
 		}
-		
+
 		token = strtok(NULL, " ");
 
 		filename = (char *)malloc(sizeof(char) * 25);
@@ -423,30 +412,28 @@ int receive_message_tcp()
 		printf("%s\n", token);
 		i = 8 + strlen(token);
 		state = 0;
-		
+
 		fsize = -1;
 
 		/*ver tambem se N > 0*/
-		while(buffer[i] != '\n' || fsize != 0)
+		while (buffer[i] != '\n' || fsize != 0)
 		{
 			//printf("%d state: %d\n", j, state);
-			if(state == 0 && buffer[i] == ' ')
+			if (state == 0 && buffer[i] == ' ')
 			{
 				state = 1;
 				mid[j] = '\0';
 				j = 0;
 				printf("%s\n", mid);
-
 			}
-			else if(state == 1 && buffer[i] == ' ')
+			else if (state == 1 && buffer[i] == ' ')
 			{
 				state = 2;
 				uid[j] = '\0';
 				j = 0;
 				printf("%s\n", uid);
-
 			}
-			else if(state == 2 && buffer[i] == ' ')
+			else if (state == 2 && buffer[i] == ' ')
 			{
 				tsize = atoi(txtsize);
 				state = 3;
@@ -454,31 +441,29 @@ int receive_message_tcp()
 				j = 0;
 
 				printf("%s\n", txtsize);
-
 			}
-			else if(state == 3 && tsize == 0 && buffer[i] == ' ')
+			else if (state == 3 && tsize == 0 && buffer[i] == ' ')
 			{
 				state = 4;
 				text[j] = '\0';
 				j = 0;
 
 				printf("%s\n", text);
-
 			}
-			else if(state == 4 && buffer[i] >= '0' && buffer[i] <= '9')
+			else if (state == 4 && buffer[i] >= '0' && buffer[i] <= '9')
 			{
 				printf("-%s uid: %s text: %s\n", mid, uid, text);
 				state = 0;
 			}
-			else if(state == 4 && buffer[i] == '/')
+			else if (state == 4 && buffer[i] == '/')
 			{
 				state = 5;
 			}
-			else if(state == 5 && buffer[i] == ' ')
+			else if (state == 5 && buffer[i] == ' ')
 			{
 				state = 6;
 			}
-			else if(state == 6 && buffer[i] == ' ')
+			else if (state == 6 && buffer[i] == ' ')
 			{
 				state = 7;
 				*(filename + j) = '\0';
@@ -487,7 +472,7 @@ int receive_message_tcp()
 				printf("file: %s\n", filename);
 			}
 
-			else if(state == 7 && buffer[i] == ' ')
+			else if (state == 7 && buffer[i] == ' ')
 			{
 				fsize = strtoll(filesize, NULL, 0);
 				filesize[j] = '\0';
@@ -495,14 +480,13 @@ int receive_message_tcp()
 				j = 0;
 
 				printf("%s %lld\n", filesize, fsize);
-				
-				if((f = fopen(filename, "w+")) == NULL)
+
+				if ((f = fopen(filename, "w+")) == NULL)
 				{
 					fprintf(stderr, "[!]Error receiving file %s\n", filename);
 				}
-
 			}
-			else if(state == 8 && tsize == 0 && buffer[i] == ' ')
+			else if (state == 8 && tsize == 0 && buffer[i] == ' ')
 			{
 				state = 0;
 				printf("-%s uid: %s text: %s file: %s file size: %s\n", mid, uid, text, filename, filesize);
@@ -510,90 +494,89 @@ int receive_message_tcp()
 				fclose(f);
 			}
 
-			switch(state)
+			switch (state)
 			{
-				case 0:
-					if(buffer[i] == ' ')
-					{
-						break;
-					}
-					mid[j] = buffer[i];
-					j++;	
-
+			case 0:
+				if (buffer[i] == ' ')
+				{
 					break;
-				case 1:
-					if(buffer[i] == ' ' && j== 0)
-					{
-						bzero(uid, 5);
-						break;
-					}
-					uid[j] = buffer[i];
-					j++;
+				}
+				mid[j] = buffer[i];
+				j++;
 
+				break;
+			case 1:
+				if (buffer[i] == ' ' && j == 0)
+				{
+					bzero(uid, 5);
 					break;
-				case 2:
-					if(buffer[i] == ' ' && j == 0)
-					{
-						bzero(txtsize,3);
-						break;
-					}
-					txtsize[j] = buffer[i];
-					j++;
+				}
+				uid[j] = buffer[i];
+				j++;
 
+				break;
+			case 2:
+				if (buffer[i] == ' ' && j == 0)
+				{
+					bzero(txtsize, 3);
 					break;
-				case 3:
-					if(buffer[i] == ' ' && j== 0)
-					{
-						bzero(text, 240);
-						break;
-					}
-					text[j] = buffer[i];
-					j++;
-					tsize--;	
+				}
+				txtsize[j] = buffer[i];
+				j++;
 
+				break;
+			case 3:
+				if (buffer[i] == ' ' && j == 0)
+				{
+					bzero(text, 240);
 					break;
-				case 6:
-					if(buffer[i] == ' ')
-					{
-						bzero(text, 24);
-						break;
-					}
+				}
+				text[j] = buffer[i];
+				j++;
+				tsize--;
 
-					*(filename + j) = buffer[i];
-					j++;
-
+				break;
+			case 6:
+				if (buffer[i] == ' ')
+				{
+					bzero(text, 24);
 					break;
-				case 7:
-					if(buffer[i] == ' ')
-					{
-						bzero(filesize, 11);
-						bzero(data, BUFFER_TCP);
-						break;
-					}
+				}
 
-					filesize[j] = buffer[i];
-					j++;
+				*(filename + j) = buffer[i];
+				j++;
 
+				break;
+			case 7:
+				if (buffer[i] == ' ')
+				{
+					bzero(filesize, 11);
+					bzero(data, BUFFER_TCP);
 					break;
-				case 8:
+				}
 
-					/*mandar para data e depois fazer fputs?*/
-					*(data) = buffer[i];
-					printf("data: %s\n", data);
+				filesize[j] = buffer[i];
+				j++;
 
+				break;
+			case 8:
 
-					fwrite(&buffer[i], 1, sizeof(buffer[i]), f);
-					/*if(fputs(&buffer[i], f) == EOF)
+				/*mandar para data e depois fazer fputs?*/
+				*(data) = buffer[i];
+				printf("data: %s\n", data);
+
+				fwrite(&buffer[i], 1, sizeof(buffer[i]), f);
+				/*if(fputs(&buffer[i], f) == EOF)
 					{
 						fprintf(stderr, "[!]Error saving file  %s\n", filename);
 						return NOK;
 					}*/
-					fsize--;
-					printf("size:  %lld\n", fsize);
+				fsize--;
+				printf("size:  %lld\n", fsize);
 
-					break;
-				default:
-					break;
+				break;
+			default:
+				break;
 			}
 
 			i++;
@@ -601,7 +584,7 @@ int receive_message_tcp()
 			if (i == nread)
 			{
 				memset(buffer, 0, sizeof(buffer));
-				if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
+				if ((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
 				{
 					fprintf(stderr, "[!]Error receiving from server\n");
 					return NOK;
@@ -609,16 +592,14 @@ int receive_message_tcp()
 
 				i = 0;
 			}
-
 		}
+	}
+	else
+	{
+		fprintf(stderr, "[!]Response doesn't follow protocol");
+	}
 
-		}
-		else
-		{
-			fprintf(stderr, "[!]Response doesn't follow protocol");
-		}
-
-		/*if (strncmp(buffer, "RRT", 3) ==)
+	/*if (strncmp(buffer, "RRT", 3) ==)
 		{
 			while ((c = buffer[i]) != '\n')
 			{
@@ -645,7 +626,6 @@ int receive_message_tcp()
 					i = 0;
 				}
 		}*/
-
 
 	return OK;
 }
