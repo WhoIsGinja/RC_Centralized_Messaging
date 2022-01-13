@@ -268,21 +268,20 @@ int read_nbytes(char *buffer, ssize_t *nread, int nbytes)
 			return ERR;
 		}
 
-		if (n == 0)
+		//* Message has ended
+		if (ptr[n-1] == '\n')
 		{
+			nleft -= n;
 			*nread = nbytes - 1 - nleft;
+			ptr[n-1] = '\0';
 
-			if(buffer[*nread - 1] == '\n')
-			{
-				buffer[*nread - 1] = '\0';
-			}
-			else
-			{
-				fprintf(stderr, "[!]Server doesn't follow protocol\n");
-				return ERR;
-			}
-			
 			return OK;
+		}
+		//* Connextion closed without '\n'
+		else if(n == 0)
+		{
+			fprintf(stderr, "[!]Server doesn't follow protocol for communication\n");
+			return ERR;
 		}
 
 		nleft -= n;

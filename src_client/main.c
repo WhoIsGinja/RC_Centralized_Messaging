@@ -250,7 +250,9 @@ void ulist()
 //* Sends a message to the current group
 void post()
 {
-    char *text, *filename;
+    char *text, *textend;
+    char *filename = NULL;
+    char* i;
     char post[POST_SIZE];
 
     //* Check if there is no login
@@ -266,8 +268,14 @@ void post()
         return;
     }
 
-    text = strtok(NULL, "\"");
-    filename = strtok(NULL, "\0");
+    text = strtok(NULL, "");
+    textend = rindex(++text, '\"');
+    textend[0] = '\0';
+
+    if(textend[1] == ' ')
+    {
+        filename = textend + 2;
+    }
 
     sprintf(post, "PST %s %s %ld %s\n", user.uid, user.gid, strlen(text), text);
     if (filename == NULL)
@@ -276,7 +284,7 @@ void post()
     }
     else
     {
-        tcp_send(DSIP, DSport, post, strlen(post) - 1, ++filename);
+        tcp_send(DSIP, DSport, post, strlen(post) - 1, filename);
     }
 }
 
@@ -323,8 +331,8 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "[!]Getting host name\n");
     }
+    //* Default
     strcpy(DSIP, buffer);
-    //strcpy(DSIP, "tejo.tecnico.ulisboa.pt");
     strcpy(DSport, "58005");
 
     while ((opt = getopt(argc, argv, ":n:p:")) != -1)
@@ -338,11 +346,11 @@ int main(int argc, char *argv[])
             strcpy(DSport, optarg);
             break;
         case ':':
-            fprintf(stderr, "[!]Argument needs a value");
+            fprintf(stderr, "[!]Argument needs a value\n");
             exit(1);
             break;
         case '?':
-            fprintf(stderr, "[!]Invalid arguments format");
+            fprintf(stderr, "[!]Invalid option\n");
             exit(1);
             break;
         }
