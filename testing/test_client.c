@@ -80,7 +80,7 @@ int receive_message_udp()
 {
 	socklen_t addrlen;
 	struct sockaddr_in addr;
-	char buffer[BUFFER];
+	char buffer[4096];
 	addrlen = sizeof(addr);
 	ssize_t n;
 
@@ -261,7 +261,8 @@ int main(int argc, char *argv[])
 			}
 		} */
 
-		printf("test: %s\n", regex_test("^PST\\b", buffer)? "true" : "false");
+		buffer[strlen(buffer) -1] = '\0';
+		printf("test: %s\n", regex_test("^[[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3} [[:digit:]]{1,10} [^\\0]", buffer)? "true" : "false");
 
 		/* if ((n = scandir(".", &groups, NULL, alphasort)) == -1)
 		{

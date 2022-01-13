@@ -17,7 +17,7 @@ int group_create(const char* uid, const char* gname);
 int group_add(const char* uid, const char* gid, const char* gname);
 int group_remove(const char* uid, const char* gid);
 int groups_get(char** glist, const char* uid);
-int group_msg_add(const char* uid, const char* gid, const char *text);
+int group_msg_add(const char* uid, const char* gid, const char *text, char* mid);
 int group_msg_remove(const char* gid, const char* mid);
 int group_msg_file(const char* gid, const char* mid, const char* filename, char* pathname);
 #endif
