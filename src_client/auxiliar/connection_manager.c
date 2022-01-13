@@ -279,34 +279,6 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
 	start[*nread + 1] = '\0';
 
 	return NOK;
-
-    nleft = nbytes - 1;
-    ptr = start;
-
-    while (nleft > 0)
-    {
-        if ((n = read(fd, ptr, nleft)) == -1)
-        {
-            fprintf(stderr, "[!]Error receiving from client: %s\n", strerror(errno));
-            return ERR;
-        }
-
-        if (ptr[n - 1] == '\n')
-        {
-            nleft -= n;
-            *nread = nbytes - 1 - nleft;
-            start[*nread + 1] = '\0';
-            return OK;
-        }
-
-        nleft -= n;
-        ptr += n;
-    }
-
-    *nread = nbytes - 1 - nleft;
-    start[*nread + 1] = '\0';
-
-    return NOK;
 }
 
 
@@ -625,7 +597,7 @@ int receive_message_tcp()
 			}
 
 			i++;
-			//When buffer is all read
+			//*When buffer is all read
 			if (i == nread)
 			{
 				memset(buffer, 0, sizeof(buffer));

@@ -14,12 +14,14 @@
 #include <errno.h>
 #include <regex.h>
 #include <signal.h>
+#include <dirent.h>
 #include "../protocol_constants.h"
 #include "auxiliar/data_manager.h"
 
 #define MAXCHILD_P 100
-#define BUFFER_UDP 64
-#define BUFFER_TCP 2048
+#define BUFFER_64B 64
+#define BUFFER_512B 512
+#define BUFFER_2KB 2048
 
 char port[16];
 
@@ -349,7 +351,7 @@ void udp_communication()
 	struct addrinfo hints;
 	struct addrinfo *res;
 	struct sockaddr_in addr;
-	char buffer[BUFFER_UDP];
+	char buffer[BUFFER_64B];
 	char *response;
 	socklen_t addrlen = sizeof(addr);
 
@@ -523,7 +525,7 @@ int post_file(const char *start, const int nread, const char *gid, const char *m
 {
 	char *filename, *data, *aux;
 	FILE *f;
-	char buffer[BUFFER_TCP];
+	char buffer[BUFFER_2KB];
 	long long fsize;
 	ssize_t n;
 	int status;
@@ -589,6 +591,185 @@ int post_file(const char *start, const int nread, const char *gid, const char *m
 //* Retrives up to 20 messages
 int retrieve()
 {
+	char *uid, *gid, *mid;
+	int status;
+	FILE *f;
+	DIR *d;
+	struct dirent **mids;
+	struct dirent *entry;
+	int nmsg, n;
+	char gpathname[BUFFER_64B];
+	char current_mid[BUFFER_64B * 2];
+	char tmp[BUFFER_64B];
+	char buffer[BUFFER_512B];
+	char message[BUFFER_2KB];
+
+	uid = strtok(NULL, " ");
+	gid = strtok(NULL, " ");
+	mid = strtok(NULL, "");
+	mid[strlen(mid) - 1] = '\0';
+
+	printf("Retrive from %s(%s) by %s\n", gid, mid, uid);
+
+	//* Check if user is logged on
+	if (user_logged(uid) != OK)
+	{
+		return NOK;
+	}
+
+	status = group_msgs_get(uid, gid, mid, gpathname, &mids, &nmsg);
+	if (status == NOK)
+	{
+		return NOK;
+	}
+	else if (nmsg == 0)
+	{
+		return EOF;
+	}
+
+	sprintf(message, "RRT OK %d", nmsg);
+	if ((n = write(connfd, message, strlen(message))) == -1)
+	{
+		fprintf(stderr, "[!]Sending to client: %s\n", strerror(errno));
+		free(mids);
+		return ERR;
+	}
+
+	for (int i = 0; i < nmsg; i++)
+	{
+		bool file = false;
+		char filename[25];
+
+		strcpy(message, " ");
+		strncat(message, mids[i]->d_name, 4);
+
+		sprintf(current_mid, "%s/", gpathname);
+		strncat(current_mid, mids[i]->d_name, 4);
+		if ((d = opendir(current_mid)) == NULL)
+		{
+			fprintf(stderr, "[!]Opening messga directory: %s\n", strerror(errno));
+			free(mids);
+			exit(1);
+		}
+
+		//* See if there is a file
+		while ((entry = readdir(d)) != NULL)
+		{
+			if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0 &&
+				strcmp(entry->d_name, "A U T H O R.txt") != 0 && strcmp(entry->d_name, "T E X T.txt") != 0)
+			{
+				file = true;
+				strncpy(filename, entry->d_name, strlen(entry->d_name) + 1);
+			}
+		}
+
+		//* Get author
+		sprintf(buffer, "%s/A U T H O R.txt", current_mid);
+		if ((f = fopen(buffer, "r")) == NULL)
+		{
+			fprintf(stderr, "[!]Opening author file: %s\n", strerror(errno));
+			free(mids);
+			return ERR;
+		}
+		if (fgets(buffer, sizeof(buffer), f) == NULL)
+		{
+			fprintf(stderr, "[!]Reading message author\n");
+			fclose(f);
+			free(mids);
+			return ERR;
+		}
+		fclose(f);
+
+		//* Write author
+		strcat(message, " ");
+		strcat(message, buffer);
+
+		//* Get text
+		sprintf(buffer, "%s/T E X T.txt", current_mid);
+		if ((f = fopen(buffer, "r")) == NULL)
+		{
+			fprintf(stderr, "[!]Opening  text file: %s\n", strerror(errno));
+			free(mids);
+			return ERR;
+		}
+		if (fgets(buffer, sizeof(buffer), f) == NULL)
+		{
+			fprintf(stderr, "[!]Reading text\n");
+			fclose(f);
+			free(mids);
+			return ERR;
+		}
+		fclose(f);
+
+		//* Write text size
+		sprintf(tmp, " %ld", strlen(buffer));
+		strcat(message, tmp);
+		//* Write text
+		strcat(message, " ");
+		strcat(message, buffer);
+
+		//* If there is no file send
+		if (!file)
+		{
+			//* Send
+			if ((n = write(connfd, message, strlen(message)) == -1))
+			{
+				fprintf(stderr, "[!]Sending to client\n");
+				free(mids);
+				return ERR;
+			}
+			continue;
+		}
+
+		//* Write filename
+		strcat(message, " / ");
+		strcat(message, filename);
+
+		//* Get file
+		sprintf(buffer, "%s/%s", current_mid, filename);
+		if ((f = fopen(buffer, "r")) == NULL)
+		{
+			fprintf(stderr, "[!]: %s\n", strerror(errno));
+			free(mids);
+			return ERR;
+		}
+
+		//*Get file size
+		fseek(f, 0L, SEEK_END);
+		sprintf(buffer, " %ld", ftell(f));
+		rewind(f);
+		strcat(message, buffer);
+		strcat(message, " ");
+
+		//* Send
+		if ((n = write(connfd, buffer, strlen(buffer)) == -1))
+		{
+			fprintf(stderr, "[!]Sending to client\n");
+			free(mids);
+			return ERR;
+		}
+
+		//* Send file data
+		while (!feof(f))
+		{
+			n = fread(buffer, sizeof(char), sizeof(buffer), f);
+			if ((n = write(connfd, buffer, n) == -1))
+			{
+				fprintf(stderr, "[!]Sending to client\n");
+				free(mids);
+				return ERR;
+			}
+		}
+		fclose(f);
+	}
+
+	if ((n = write(connfd, "\n", 1) == -1))
+	{
+		fprintf(stderr, "[!]Sending to server\n");
+		free(mids);
+		return ERR;
+	}
+
 	return OK;
 }
 
@@ -699,7 +880,19 @@ void tcp_commands(char *buffer, int nread)
 			return;
 		}
 
-		sprintf(buffer, "RRT %s\n", strstatus(OK));
+		strtok(buffer, " ");
+		status = retrieve();
+
+		if (status == NOK)
+		{
+			sprintf(buffer, "RRT NOK\n");
+			return;
+		}
+		else if (status == EOF)
+		{
+			sprintf(buffer, "RRT EOF\n");
+			return;
+		}
 	}
 	else
 	{
@@ -721,7 +914,7 @@ void tcp_communication()
 	struct addrinfo hints;
 	struct addrinfo *res;
 	struct sockaddr_in addr;
-	char buffer[BUFFER_TCP];
+	char buffer[BUFFER_2KB];
 	socklen_t addrlen = sizeof(addr);
 
 	fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -777,7 +970,7 @@ void tcp_communication()
 
 			printf("[?]From %s:%d->", inet_ntoa(addr.sin_addr), ntohs(addr.sin_port));
 
-			status = read_nbytes(buffer, &n, BUFFER_TCP);
+			status = read_nbytes(buffer, &n, BUFFER_2KB);
 
 			if (status != ERR)
 			{

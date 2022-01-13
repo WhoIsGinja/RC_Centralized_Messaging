@@ -19,6 +19,9 @@
 char f_uid[6];
 //* Gid to filter users
 char f_gid[3];
+//* Mid to filter msg
+int f_mid;
+
 
 void init_server_data()
 {
@@ -525,7 +528,7 @@ int groups_get(char **glist, const char *uid)
 
 //* Filter users
 int filter_users(const struct dirent *entry)
-{
+{   
     char buffer[BUFFER_64B];
     if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, "MSG") == 0)
     {
@@ -779,6 +782,50 @@ int group_msg_file(const char *gid, const char *mid, const char *filename, char 
     fclose(f);
 
     strcpy(pathname, buffer);
+
+    return OK;
+}
+
+//* Filter msg
+int filter_msgs(const struct dirent *entry)
+{
+    int mid;
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+    {
+        return 0;
+    }
+
+    mid = atoi(entry->d_name);
+
+    if(mid >= f_mid && mid < f_mid + 19 )
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+int group_msgs_get(const char* uid, const char* gid, const char* mid, char* pathname, struct dirent *** mids, int* nmsg)
+{
+    char buffer[BUFFER_1KB];
+
+    //* Check valid gid
+    sprintf(buffer, "%s/%s", GROUPS, gid);
+    if (access(buffer, F_OK) != 0)
+    {
+        return NOK;
+    }
+
+    f_mid = atoi(mid);
+
+    //* Get mids
+    sprintf(buffer, "%s/%s/MSG", GROUPS, gid);
+    strcpy(pathname, buffer);
+    if ((*nmsg = scandir(buffer, mids, filter_msgs, alphasort)) == -1)
+    {
+        fprintf(stderr, "[!]Getting messages: %s\n", strerror(errno));
+        return NOK;
+    }
 
     return OK;
 }
