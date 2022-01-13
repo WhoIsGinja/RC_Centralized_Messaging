@@ -22,7 +22,6 @@ char f_gid[3];
 //* Mid to filter msg
 int f_mid;
 
-
 void init_server_data()
 {
     if (mkdir("data_server", S_IRWXU) == -1 && errno != EEXIST)
@@ -54,7 +53,10 @@ int check_pass(const char *uid, const char *pass)
     sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
     if ((f = fopen(buffer, "r")) == NULL)
     {
-        fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
+        if (errno != ENOENT)
+        {
+            fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
+        }
         return NOK;
     }
     if (fgets(buffer, sizeof(buffer), f) == NULL)
@@ -528,7 +530,7 @@ int groups_get(char **glist, const char *uid)
 
 //* Filter users
 int filter_users(const struct dirent *entry)
-{   
+{
     char buffer[BUFFER_64B];
     if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, "MSG") == 0)
     {
@@ -540,10 +542,10 @@ int filter_users(const struct dirent *entry)
     return (strcmp(entry->d_name, buffer) != 0);
 }
 
-int group_users(char** ulist, const char *gid)
+int group_users(char **ulist, const char *gid)
 {
     struct dirent **users;
-    FILE* f;
+    FILE *f;
     char buffer[BUFFER_1KB];
     int i, unum;
 
@@ -797,7 +799,7 @@ int filter_msgs(const struct dirent *entry)
 
     mid = atoi(entry->d_name);
 
-    if(mid >= f_mid && mid < f_mid + 19 )
+    if (mid >= f_mid && mid < f_mid + 19)
     {
         return 1;
     }
@@ -805,7 +807,7 @@ int filter_msgs(const struct dirent *entry)
     return 0;
 }
 
-int group_msgs_get(const char* uid, const char* gid, const char* mid, char* pathname, struct dirent *** mids, int* nmsg)
+int group_msgs_get(const char *uid, const char *gid, const char *mid, char *pathname, struct dirent ***mids, int *nmsg)
 {
     char buffer[BUFFER_1KB];
 

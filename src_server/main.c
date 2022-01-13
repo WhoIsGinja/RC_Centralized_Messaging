@@ -1040,6 +1040,8 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	fprintf(stderr, "[=]Running % on %s\n", verbose?"verbose":"non-verbose", port);
+
 	//* Ignore lost of connection and zombie child signals
 	memset(&act, 0, sizeof act);
 	act.sa_handler = SIG_IGN;
