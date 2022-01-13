@@ -588,7 +588,7 @@ int post_file(const char *start, const int nread, const char *gid, const char *m
 	return OK;
 }
 
-//* Retrives up to 20 messages
+//* Retrieves up to 20 messages
 int retrieve()
 {
 	char *uid, *gid, *mid;
@@ -609,7 +609,7 @@ int retrieve()
 	mid = strtok(NULL, "");
 	mid[strlen(mid) - 1] = '\0';
 
-	printf("Retrive from %s(%s) by %s\n", gid, mid, uid);
+	printf("Retrieve from %s(%s) by %s\n", gid, mid, uid);
 
 	//* Check if user is logged on
 	if (user_logged(uid) != OK)
