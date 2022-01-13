@@ -799,7 +799,7 @@ int filter_msgs(const struct dirent *entry)
 
     mid = atoi(entry->d_name);
 
-    if (mid >= f_mid && mid < f_mid + 19)
+    if (mid >= f_mid && mid < f_mid + 20)
     {
         return 1;
     }
