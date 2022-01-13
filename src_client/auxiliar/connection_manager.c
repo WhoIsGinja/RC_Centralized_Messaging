@@ -249,7 +249,6 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 //* Read n - 1 bytes or less, last byte always a null char(TCP)
 int read_nbytes(char *start, ssize_t *nread, int nbytes)
 {
-<<<<<<< Updated upstream
 	char *ptr;
 	int n, nleft;
 
@@ -280,9 +279,6 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
 	start[*nread + 1] = '\0';
 
 	return NOK;
-=======
-    char *ptr;
-    int n, nleft;
 
     nleft = nbytes - 1;
     ptr = start;
@@ -311,7 +307,6 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
     start[*nread + 1] = '\0';
 
     return NOK;
->>>>>>> Stashed changes
 }
 
 
@@ -420,7 +415,7 @@ int receive_message_tcp()
 	//* Retrieve
 	else if (regex_test("^RRT (NOK\\\n$|EOF\\\n$|OK [^ ])", buffer))
 	{
-		/* char *filename, *data;
+		char *filename, *data;
 		FILE *f;
 		char *aux;
 		long long fsize;
@@ -449,7 +444,7 @@ int receive_message_tcp()
 		token = strtok(NULL, " ");
 
 		filename = (char *)malloc(sizeof(char) * 25);
-		data = (char *)malloc(sizeof(char) * BUFFER_TCP);
+		data = (char *)malloc(sizeof(char));
 
 		messages = atoi(token);
 
@@ -457,9 +452,10 @@ int receive_message_tcp()
 		i = 8 + strlen(token);
 		state = 0;
 		
+		fsize = -1;
 
 		/*ver tambem se N > 0*/
-		while(buffer[i] != '\n')
+		while(buffer[i] != '\n' || fsize != 0)
 		{
 			//printf("%d state: %d\n", j, state);
 			if(state == 0 && buffer[i] == ' ')
@@ -525,17 +521,21 @@ int receive_message_tcp()
 				filesize[j] = '\0';
 				state = 8;
 				j = 0;
+
+				printf("%s %lld\n", filesize, fsize);
 				
 				if((f = fopen(filename, "w+")) == NULL)
 				{
 					fprintf(stderr, "[!]Error receiving file %s\n", filename);
 				}
 
-				printf("-%s uid: %s text: %s file: %s file size: %s\n", mid, uid, text, filename, filesize);
 			}
 			else if(state == 8 && tsize == 0 && buffer[i] == ' ')
 			{
 				state = 0;
+				printf("-%s uid: %s text: %s file: %s file size: %s\n", mid, uid, text, filename, filesize);
+				messages--;
+				fclose(f);
 			}
 
 			switch(state)
@@ -595,6 +595,7 @@ int receive_message_tcp()
 					if(buffer[i] == ' ')
 					{
 						bzero(filesize, 11);
+						bzero(data, BUFFER_TCP);
 						break;
 					}
 
@@ -603,17 +604,20 @@ int receive_message_tcp()
 
 					break;
 				case 8:
-					if(buffer[i] == ' ' && j== 0)
-					{
-						bzero(data, BUFFER_TCP);
-						break;
-					}
-
 
 					/*mandar para data e depois fazer fputs?*/
-					*(data + j) = buffer[i];
-					j++;
+					*(data) = buffer[i];
+					printf("data: %s\n", data);
+
+
+					fwrite(&buffer[i], 1, sizeof(buffer[i]), f);
+					/*if(fputs(&buffer[i], f) == EOF)
+					{
+						fprintf(stderr, "[!]Error saving file  %s\n", filename);
+						return NOK;
+					}*/
 					fsize--;
+					printf("size:  %lld\n", fsize);
 
 					break;
 				default:
@@ -621,13 +625,8 @@ int receive_message_tcp()
 			}
 
 			i++;
-<<<<<<< Updated upstream
 			//When buffer is all read
-			if (i == n)
-=======
-			//*When buffer is all read
 			if (i == nread)
->>>>>>> Stashed changes
 			{
 				memset(buffer, 0, sizeof(buffer));
 				if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
@@ -638,13 +637,14 @@ int receive_message_tcp()
 
 				i = 0;
 			}
+
 		}
 
 		}
 		else
 		{
 			fprintf(stderr, "[!]Response doesn't follow protocol");
-		} */
+		}
 
 		/*if (strncmp(buffer, "RRT", 3) ==)
 		{
