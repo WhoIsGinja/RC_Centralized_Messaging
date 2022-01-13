@@ -513,6 +513,10 @@ int post_msg(char *gid, char *mid, char **fileinfo)
 		text[tsize] = '\0';
 		*fileinfo = text + tsize + 1;
 	}
+	else
+	{
+		text[tsize-1] = '\0';
+	}
 
 	//* Create message information and text
 	status = group_msg_add(uid, gid, text, mid);
@@ -763,10 +767,11 @@ int retrieve()
 		fclose(f);
 	}
 
+	free(mids);
+
 	if ((n = write(connfd, "\n", 1) == -1))
 	{
 		fprintf(stderr, "[!]Sending to server\n");
-		free(mids);
 		return ERR;
 	}
 
@@ -1040,7 +1045,7 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	fprintf(stderr, "[=]Running %s on %s\n", verbose?"verbose":"non-verbose", port);
+	fprintf(stderr, "[=]Running %s on %s\n", verbose ? "verbose" : "non-verbose", port);
 
 	//* Ignore lost of connection and zombie child signals
 	memset(&act, 0, sizeof act);
