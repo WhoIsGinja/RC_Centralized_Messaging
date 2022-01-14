@@ -114,7 +114,7 @@ int receive_message_udp()
 	//* Replace '\n'
 	buffer[n - 1] = '\0';
 
-	if (regex_test("^(RGL|RGM) ((0|[1-9]|[1-9][0-9])( [[:digit:]]{2} [[:alnum:]_-]{1,24} [[:digit:]]{4})+)$", buffer))
+	if (regex_test("^(RGL|RGM) (0|([1-9]|[1-9][0-9])( [[:digit:]]{2} [[:alnum:]_-]{1,24} [[:digit:]]{4})+)$", buffer))
 	{
 		strtok(buffer, " ");
 		i = atoi(strtok(NULL, " "));
