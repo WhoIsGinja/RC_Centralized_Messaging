@@ -15,7 +15,8 @@
 #include "../../protocol_constants.h"
 
 #define BUFFER_TCP 2048
-#define UL_SIZE BUFFER_TCP * 2
+#define UL_SIZE BUFFER_TCP*2
+
 
 int fd;
 
@@ -44,6 +45,8 @@ bool regex_test(const char *rule, const char *str)
 		return false;
 	}
 }
+
+
 
 //*UDP transmissions
 int send_message_udp(const char *ds_ip, const char *ds_port, const char *message, int size)
@@ -80,6 +83,7 @@ int send_message_udp(const char *ds_ip, const char *ds_port, const char *message
 	return OK;
 }
 
+
 int receive_message_udp()
 {
 	socklen_t addrlen;
@@ -100,13 +104,16 @@ int receive_message_udp()
 
 	buffer[n - 1] = '\0';
 
+	//.DELETE
+	write(1,"[<]",3);write(1,buffer, strlen(buffer));write(1,"\n",1);
+
 	rcmd = strtok(buffer, " ");
 
+	//TODO verify everything ????
 	if (strcmp(rcmd, "RGL") == 0 || strcmp(rcmd, "RGM") == 0)
 	{
 		i = atoi(strtok(NULL, " "));
 
-		printf("[<]\n");
 		for (; i > 0; i--)
 		{
 			gid = strtok(NULL, " ");
@@ -130,6 +137,7 @@ int receive_message_udp()
 	return OK;
 }
 
+
 int udp_send(const char *ds_ip, const char *ds_port, char *message, int size)
 {
 	int status;
@@ -145,6 +153,7 @@ int udp_send(const char *ds_ip, const char *ds_port, char *message, int size)
 
 	return status;
 }
+
 
 //*TCP transmissions
 int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int size, char *filename)
@@ -169,7 +178,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 	errcode = getaddrinfo(ds_ip, ds_port, &hints, &res);
 	if (errcode != 0)
 	{
-		fprintf(stderr, "[!]Getting the server\n");
+		fprintf(stderr, "Error getting the server\n");
 		freeaddrinfo(res);
 		return NOK;
 	}
@@ -183,7 +192,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 
 	if ((n = write(fd, message, size) == -1))
 	{
-		fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
+		fprintf(stderr, "Error sending to server\n");
 		return NOK;
 	}
 
@@ -192,7 +201,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 	{
 		if ((f = fopen(filename, "r")) == NULL)
 		{
-			fprintf(stderr, "[!]Opening file to send: %s\n", strerror(errno));
+			fprintf(stderr, "[!]: %s\n", strerror(errno));
 			return NOK;
 		}
 
@@ -212,7 +221,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 		sprintf(buffer, " %s %lld ", filename, fsize);
 		if ((n = write(fd, buffer, strlen(buffer)) == -1))
 		{
-			fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
+			fprintf(stderr, "Error sending to server\n");
 			return NOK;
 		}
 
@@ -222,7 +231,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 			n = fread(buffer, sizeof(char), sizeof(buffer), f);
 			if ((n = write(fd, buffer, n) == -1))
 			{
-				fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
+				fprintf(stderr, "Error sending to server\n");
 				return NOK;
 			}
 		}
@@ -231,7 +240,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 
 		if ((n = write(fd, "\n", 1) == -1))
 		{
-			fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
+			fprintf(stderr, "Error sending to server\n");
 			return NOK;
 		}
 	}
@@ -244,33 +253,45 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 int read_nbytes(char *buffer, ssize_t *nread, int nbytes)
 {
 	char *ptr;
-	int n, nleft;
+	int n;
+	int nleft;
 
 	nleft = nbytes - 1;
-	ptr = start;
+	ptr = buffer;
 
 	while (nleft > 0)
 	{
+		//.FIXME error
 		if ((n = read(fd, ptr, nleft)) == -1)
 		{
-			fprintf(stderr, "[!]Error receiving from client: %s\n", strerror(errno));
+			fprintf(stderr, "[!]Error receiving from server: %s\n", strerror(errno));
 			return ERR;
 		}
 
-		if (ptr[n - 1] == '\n')
+		if (n == 0)
 		{
-			nleft -= n;
 			*nread = nbytes - 1 - nleft;
-			start[*nread + 1] = '\0';
+
+			if(buffer[*nread - 1] == '\n')
+			{
+				buffer[*nread - 1] = '\0';
+			}
+			else
+			{
+				fprintf(stderr, "[!]Server doesn't follow protocol\n");
+				return ERR;
+			}
+			
 			return OK;
 		}
 
 		nleft -= n;
 		ptr += n;
+
 	}
 
 	*nread = nbytes - 1 - nleft;
-	start[*nread + 1] = '\0';
+	buffer[*nread++] = '\0';
 
 	return NOK;
 }*/
@@ -310,6 +331,7 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
     return NOK;
 }
 
+
 int receive_message_tcp()
 {
 	ssize_t nread;
@@ -317,24 +339,23 @@ int receive_message_tcp()
 	char *token;
 	char buffer[BUFFER_TCP];
 
-	if ((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
+	if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
 	{
 		return NOK;
 	}
 
 	//* Ulist
-	if (regex_test("^RUL (OK|NOK\\\n$)( [^ ])?", buffer))
-	{
+	if (regex_test("^RUL (OK|NOK) [^ ]", buffer))
+	{	
 		int ulistLeft;
 		int ulistSize;
 		char *ulist;
 
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
-
-		if (token[strlen(token) - 1] == '\n')
+		if (istatus(token) == NOK)
 		{
-			printf("[<]Group doesn't exist\n");
+			printf("[-]Group doesn't exist\n");
 			return NOK;
 		}
 
@@ -347,13 +368,13 @@ int receive_message_tcp()
 
 		//* Copy read users
 		strcpy(ulist, token);
-
+	
 		ulistLeft -= strlen(ulist) + 1;
 
 		//* If not all users have been read
 		while (status != OK)
-		{
-			if ((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
+		{	
+			if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
 			{
 				free(ulist);
 				return NOK;
@@ -361,31 +382,29 @@ int receive_message_tcp()
 
 			//* If there is more to add than space
 			while (ulistLeft < nread)
-			{
+			{				
 				ulistSize *= 2;
-				ulist = (char *)realloc(ulist, ulistSize);
-
+				ulist = (char*) realloc(ulist, ulistSize);
+				
 				ulistLeft = ulistSize - strlen(ulist) + 1;
 			}
 
 			//* Copy new users
-			strcat(ulist, buffer);
+			strcat(ulist, buffer);	
 			ulistLeft -= nread;
 		}
 
 		//* Check format
 		if (!regex_test("^[[:alnum:]_-]{1,24}( [[:digit:]]{5})*", ulist))
 		{
-			fprintf(stderr, "[<]Server doesn't follow protocol\n");
+			fprintf(stderr,"[-]Server doesn't follow protocol\n");
 			free(ulist);
 			return NOK;
 		}
 
 		//* Print output
-		ulist[strlen(ulist) - 1] = '\0';
-
 		token = strtok(ulist, " ");
-		printf("[<]Users of group %s:\n", token);
+		printf("[-]Users of group %s:\n", token);
 		while ((token = strtok(NULL, " ")) != NULL)
 		{
 			printf("-%s\n", token);
@@ -394,23 +413,25 @@ int receive_message_tcp()
 		free(ulist);
 	}
 
+
 	//* Post
-	else if (regex_test("^RPT ([[:digit:]]{4}|NOK)\\\n$", buffer))
+	else if (regex_test("^RPT ([[:digit:]]{4}$|NOK)", buffer))
 	{
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
-
-		if (strncmp("NOK", token, 3) == 0)
+		if(strcmp("NOK", token) == 0)
 		{
-			printf("[<]Unable to post\n");
+			printf("[-]Unable to post\n");
 			return NOK;
 		}
 
-		printf("[<]Post sent successfully: %s", token);
+		printf("[-]Post sent successfully: %s\n", token);
+		
+		
 	}
 
 	//* Retrieve
-	else if (regex_test("^RRT (NOK\\\n$|EOF\\\n$|OK [^ ])", buffer))
+	else if (regex_test("^RRT (NOK$|EOF$|OK [^ ])", buffer))
 	{
 
 
@@ -436,7 +457,7 @@ int receive_message_tcp()
 			printf("[-]Unable to post\n");
 			return NOK;
 		}
-		else if (strcmp("EOF", token) == 0)
+		else if(strcmp("EOF", token) == 0)
 		{
 			printf("[-]No messages available");
 			return EOF;
@@ -451,20 +472,17 @@ int receive_message_tcp()
 			//printf("HEYYYY %d", messages);
 			if(state == 0 && buffer[i] == ' ')
 			{
-				printf("-mid: %s\n", aux);
+				printf("mid: %s\n", aux);
 				bzero(aux, j);
 				j = 0;
 
 				state = 1;
 			}
-			else if (state == 1 && buffer[i] == ' ')
+			else if(state == 1 && buffer[i] == ' ')
 			{
 				bzero(aux, j);
 				j = 0;
 				state = 2;
-				uid[j] = '\0';
-				j = 0;
-				printf("%s\n", uid);
 			}
 			else if(state == 2 && buffer[i] == ' ')
 			{
@@ -496,21 +514,13 @@ int receive_message_tcp()
 				j = 0;
 				state = 5;
 			}
-			else if (state == 5 && buffer[i] == ' ')
+			else if(state == 5 && buffer[i] == ' ')
 			{
 				printf("file name: %s\n", aux);
 				filename = strdup(aux);
 				bzero(aux, j);
 				j = 0;
 				state = 6;
-			}
-			else if (state == 6 && buffer[i] == ' ')
-			{
-				state = 7;
-				*(filename + j) = '\0';
-				j = 0;
-
-				printf("file: %s\n", filename);
 			}
 
 			else if(state == 6 && buffer[i] == ' ')
@@ -640,53 +650,8 @@ int receive_message_tcp()
 					}
 					fsize--;
 					break;
-				}
-				text[j] = buffer[i];
-				j++;
-				tsize--;
-
-				break;
-			case 6:
-				if (buffer[i] == ' ')
-				{
-					bzero(text, 24);
+				default:
 					break;
-				}
-
-				*(filename + j) = buffer[i];
-				j++;
-
-				break;
-			case 7:
-				if (buffer[i] == ' ')
-				{
-					bzero(filesize, 11);
-					bzero(data, BUFFER_TCP);
-					break;
-				}
-
-				filesize[j] = buffer[i];
-				j++;
-
-				break;
-			case 8:
-
-				/*mandar para data e depois fazer fputs?*/
-				*(data) = buffer[i];
-				printf("data: %s\n", data);
-
-				fwrite(&buffer[i], 1, sizeof(buffer[i]), f);
-				/*if(fputs(&buffer[i], f) == EOF)
-					{
-						fprintf(stderr, "[!]Error saving file  %s\n", filename);
-						return NOK;
-					}*/
-				fsize--;
-				printf("size:  %lld\n", fsize);
-
-				break;
-			default:
-				break;
 			}
 			i++;
 			//* ENDS THE LOOP 
