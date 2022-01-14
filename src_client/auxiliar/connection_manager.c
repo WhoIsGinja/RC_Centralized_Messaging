@@ -114,7 +114,7 @@ int receive_message_udp()
 	//* Replace '\n'
 	buffer[n - 1] = '\0';
 
-	if (regex_test("^(RGL|RGM) (0|\\b([1-9]|[1-9][0-9])\\b( [[:digit:]]{2} [[:alnum:]_-]{1,24} [[:digit:]]{4})+)$", buffer))
+	if (regex_test("^(RGL|RGM) ((0|[1-9]|[1-9][0-9])( [[:digit:]]{2} [[:alnum:]_-]{1,24} [[:digit:]]{4})+)$", buffer))
 	{
 		strtok(buffer, " ");
 		i = atoi(strtok(NULL, " "));
@@ -406,7 +406,7 @@ int receive_message_tcp()
 	}
 
 	//* Retrieve
-	else if (regex_test("^RRT (NOK\\\n$|EOF\\\n$|OK \\b([1-9]|1[0-9]|20)\\b )", buffer))
+	else if (regex_test("^RRT (NOK\\\n$|EOF\\\n$|OK ([1-9]|1[0-9]|20) )", buffer))
 	{
 
 		FILE *f;
@@ -632,7 +632,7 @@ int receive_message_tcp()
 				memset(buffer, 0, sizeof(buffer));
 				if ((status = read_nbytes(buffer, &nread, sizeof(buffer))) == ERR)
 				{
-					fprintf(stderr, "[!]Error receiving from server\n");
+					fprintf(stderr, "[!]Receiving from server\n");
 					return NOK;
 				}
 
