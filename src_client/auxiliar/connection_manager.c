@@ -467,6 +467,7 @@ int receive_message_tcp()
 	
 		i = 8 + strlen(token);
 		state = 0;
+		j = 0;
 		while(messages > 0) 
 		{
 			//printf("HEYYYY %d", messages);
