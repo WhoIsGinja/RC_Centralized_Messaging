@@ -465,7 +465,6 @@ int receive_message_tcp()
 			}
 			else if (state == 3 && tsize == 0)
 			{
-				//aux[j] = '\0';
 				printf("[Text]%s\n", aux);
 				memset(aux, 0, j);
 				j = 0;
@@ -510,7 +509,7 @@ int receive_message_tcp()
 			else if (state == 7 && fsize == 0 && buffer[i] == ' ')
 			{
 				fwrite(data, sizeof(char), j, f);
-				bzero(data, BUFFER_2KB);
+				memset(data, 0, BUFFER_2KB);
 				fclose(f);
 
 				j = 0;
@@ -523,9 +522,8 @@ int receive_message_tcp()
 			else if (state == 7 && fsize == 0 && buffer[i] == '\n')
 
 			{
-
 				fwrite(data, sizeof(char), j, f);
-				bzero(data, BUFFER_2KB);
+				memset(data, 0, BUFFER_2KB);
 				fclose(f);
 				state = 0;
 			}
@@ -606,7 +604,7 @@ int receive_message_tcp()
 				if (j == BUFFER_2KB)
 				{
 					fwrite(data, sizeof(char), j, f);
-					bzero(data, BUFFER_2KB);
+					memset(data, 0, BUFFER_2KB);
 					j = 0;
 					fsize--;
 					break;
