@@ -19,6 +19,17 @@
 
 int fd;
 
+//* Sets socket timer on
+int TimerON(int sd)
+{
+	struct timeval tmout;
+
+	memset((char *)&tmout, 0, sizeof(tmout));
+	tmout.tv_sec = 15;
+
+	return (setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tmout, sizeof(struct timeval)));
+}
+
 //* Test str with rule
 bool regex_test(const char *rule, const char *str)
 {
@@ -57,6 +68,8 @@ int send_message_udp(const char *ds_ip, const char *ds_port, const char *message
 		fprintf(stderr, "[!]Creating socket\n");
 		return NOK;
 	}
+
+	TimerON(fd);
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_INET;
@@ -181,6 +194,8 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 		fprintf(stderr, "[!]Creating socket\n");
 		return NOK;
 	}
+
+	TimerON(fd);
 
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
@@ -307,7 +322,7 @@ int receive_message_tcp()
 	}
 
 	//* Ulist
-	if (regex_test("^RUL (OK\\\n$|NOK) [^ ]", buffer))
+	if (regex_test("^RUL (OK|NOK\\\n$) [^ ]", buffer))
 	{
 		int ulistLeft;
 		int ulistSize;
@@ -346,8 +361,7 @@ int receive_message_tcp()
 			while (ulistLeft < nread)
 			{
 				ulistSize *= 2;
-				ulist = (char *)realloc(ulist, ulistSize);
-
+				ulist = (char*)realloc(ulist, ulistSize);
 				ulistLeft = ulistSize - strlen(ulist) + 1;
 			}
 
@@ -364,6 +378,7 @@ int receive_message_tcp()
 			return NOK;
 		}
 
+		ulist[strlen(ulist)-1] = '\0';
 		//* Print output
 		token = strtok(ulist, " ");
 		printf("[<]Users of group %s:\n", token);
@@ -467,7 +482,7 @@ int receive_message_tcp()
 				j = 0;
 				state = 0;
 				messages--;
-				printf("==========================================================\n");
+				printf("\n");
 			}
 			else if (state == 4 && buffer[i] == '/')
 			{
@@ -507,7 +522,7 @@ int receive_message_tcp()
 				state = 0;
 				messages--;
 				fsize = -1;
-				printf("==========================================================\n");
+				printf("\n");
 			}
 
 			else if (state == 7 && fsize == 0 && buffer[i] == '\n')
