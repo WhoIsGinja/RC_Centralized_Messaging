@@ -249,7 +249,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 }
 
 
-//* Read n - 1 bytes or less, last byte always a null char(TCP)
+/* Read n - 1 bytes or less, last byte always a null char(TCP)
 int read_nbytes(char *buffer, ssize_t *nread, int nbytes)
 {
 	char *ptr;
@@ -294,6 +294,41 @@ int read_nbytes(char *buffer, ssize_t *nread, int nbytes)
 	buffer[*nread++] = '\0';
 
 	return NOK;
+}*/
+
+ //* Read n - 1 bytes or less, last byte always a null char(TCP)
+int read_nbytes(char *start, ssize_t *nread, int nbytes)
+{
+    char *ptr;
+    int n, nleft;
+
+    nleft = nbytes - 1;
+    ptr = start;
+
+    while (nleft > 0)
+    {
+        if ((n = read(fd, ptr, nleft)) == -1)
+        {
+            fprintf(stderr, "[!]Error receiving from client: %s\n", strerror(errno));
+            return ERR;
+        }
+
+        if (ptr[n - 1] == '\n')
+        {
+            nleft -= n;
+            *nread = nbytes - 1 - nleft;
+            start[*nread + 1] = '\0';
+            return OK;
+        }
+
+        nleft -= n;
+        ptr += n;
+    }
+
+    *nread = nbytes - 1 - nleft;
+    start[*nread + 1] = '\0';
+
+    return NOK;
 }
 
 
@@ -398,20 +433,25 @@ int receive_message_tcp()
 	//* Retrieve
 	else if (regex_test("^RRT (NOK$|EOF$|OK [^ ])", buffer))
 	{
-		char *filename, *data;
+
+
 		FILE *f;
-		char aux[BUFFER_TCP];
+		//char *data = NULL;
+		char *filename;
+		char aux[BUFFER_TCP], data[BUFFER_TCP];
 		long long fsize;
-		ssize_t n;
+		//ssize_t n;
 		int status;
 		int messages, state;
-		char mid[4], uid[5];
-		char *txtsize, *filesize;
-		int i, tsize, fsize;
-		int ti, fi;
+		//char mid[4], uid[5];
+		//char *txtsize, *filesize; 
+		int i, tsize;
+		int j, tsizemax;
+		int notmax = 0;
+		//int ti, fi;
 
 		strtok(buffer, " ");
-		token = strtok(NULL, " ");
+		token = strtok(NULL, " "); 
 		if(strcmp("NOK", token) == 0)
 		{
 			printf("[-]Unable to post\n");
@@ -422,115 +462,240 @@ int receive_message_tcp()
 			printf("[-]No messages available");
 			return EOF;
 		}
-		
-		messages = atoi(strtok(NULL, " ");
-
-
-		printf("-");
-		while(buffer[i] != '\n')
+		token = strtok(NULL, " ");
+		messages = atoi(token);
+	
+		i = 8 + strlen(token);
+		state = 0;
+		while(messages > 0) 
 		{
+			//printf("HEYYYY %d", messages);
 			if(state == 0 && buffer[i] == ' ')
 			{
+				printf("-mid: %s\n", aux);
+				bzero(aux, j);
+				j = 0;
+
 				state = 1;
-				printf(" uid: ");
 			}
 			else if(state == 1 && buffer[i] == ' ')
 			{
+				bzero(aux, j);
+				j = 0;
 				state = 2;
 			}
-			else if(state == 2 && strlen(txtsize) <= 3 && buffer[i] == ' ')
+			else if(state == 2 && buffer[i] == ' ')
 			{
-				tsize = atoi(txtsize);
-
+				tsize = atoi(aux) + 1;
+				tsizemax = tsize;
+				bzero(aux, j);
+				j = 0;
 				state = 3;
-				printf(" text: ");
 			}
-			else if(state == 3 && tsize == 0 && buffer[i] == ' ')
+			else if(state == 3 && tsize == 0)
 			{
+				//aux[j] = '\0';
+				printf("text: %s\n", aux);
+				bzero(aux, j);
+				j = 0;
 				state = 4;
+				fsize =0;
 			}
-			else if(state == 4 && buffer[i] >= '0' && buffer[i] <= '9')
+			else if((state == 4 )&& (buffer[i] >= '0') && (buffer[i] <= '9'))
 			{
+				j = 0;
 				state = 0;
-				printf("\n-");
+				messages--;
+				printf("==========================================================\n");
 			}
 			else if(state == 4 && buffer[i] == '/')
-			{
+			{	
+				i++;
+				j = 0;
 				state = 5;
-				printf(" file name: ");
 			}
 			else if(state == 5 && buffer[i] == ' ')
 			{
+				printf("file name: %s\n", aux);
+				filename = strdup(aux);
+				bzero(aux, j);
+				j = 0;
 				state = 6;
 			}
 
-			else if(state == 6 && strlen(filesize) <= 10 && buffer[i] == ' ')
+			else if(state == 6 && buffer[i] == ' ')
 			{
-				fsize = strtoll(filesize, NULL, 0);
+				fsize = strtoll(aux, NULL, 0);
+				bzero(aux, j);
+				j = 0;
+				if(( f = fopen(filename, "w")) == NULL)
+				{
+					fprintf(stderr, "[!]Error receiving file %s\n", filename);
+				}
 				state = 7;
-				printf(" file size: %ld", fsize);
+				i++;
+
 			}
-			else if(state == 7 && tsize == 0 && buffer[i] == ' ')
+			
+			else if(state == 7 && fsize == 0 && buffer[i] == ' ')
 			{
+				fwrite(data, sizeof(char), j, f);	
+				bzero(data, BUFFER_TCP);
+				fclose(f);
+				
+				j = 0;
 				state = 0;
-				printf("\n-");
+				messages--;
+				fsize = -1;
+				printf("==========================================================\n");
 			}
 
+			else if(state == 7 && fsize == 0 && buffer[i] == '\n')
+
+			{
+
+				fwrite(data, sizeof(char), j, f);
+				bzero(data, BUFFER_TCP);
+				fclose(f);
+				state = 0;
+			}
+			
 			switch(state)
 			{
 				case 0:
 					if(buffer[i] == ' ')
 					{
+						bzero(aux, j);
+						j = 0;
 						break;
 					}
-					
-
+					aux[j] = buffer[i];
+					j++;
 					break;
 				case 1:
 					if(buffer[i] == ' ')
 					{
+						bzero(aux, j);
+						j = 0;
 						break;
 					}
+					aux[j] = buffer[i];
+					j++;
+					break;					
 				case 2:
-					if(buffer[i] == ' ' && strlen(txtsize) > 0)
+					if(buffer[i] == ' ' )
 					{
+						bzero(aux, j);
 						break;
 					}
-					
+					aux[j] = buffer[i];
+					j++;	
+									
 					break;
 				case 3:
-					if(buffer[i] == ' ' && tsize > 0)
+					if(tsize == 0)
 					{
+						aux[j] = '\0';
 						break;
 					}
-					
+					if (tsize == tsizemax)
+					{
+						tsize--;
+						break;
+					}
+					aux[j] = buffer[i];
+					j++;
+					tsize--;
+					break;
+				/*case 4:
+					if(buffer[i] == ' '){
+						bzero(aux, j);
+						break;
+					}
+					break;*/
+				case 5:
+					if(buffer[i] == ' ')
+					{
+						bzero(aux, j);
+						j = 0;
+						break;
+					}
+					aux[j] = buffer[i];
+					j++;
+					break;
+				case 6:
+					if(buffer[i] == ' ')
+					{
+						bzero(aux, j);
+						j = 0;
+						break;
+					}
+					aux[j] = buffer[i];
+					j++;
+					break;
+
+				case 7:
+					*(data +j) = buffer[i];
+
+
+					j++;
+
+					if (j == BUFFER_TCP)
+					{
+						fwrite(data, sizeof(char), j, f);
+						bzero(data, BUFFER_TCP);
+						j = 0;
+						fsize--;
+						break;
+					}
+					fsize--;
 					break;
 				default:
 					break;
 			}
-
 			i++;
+			//* ENDS THE LOOP 
+			if( i == nread && notmax == 1 && fsize == 0 ){
+				if(messages == 1)
+				{
+					break;;
+				}
+			} 
 			//*When buffer is all read
-			if (i == n)
-			{
+			if (i == nread)
+			{ 
+				//bzero(data, BUFFER_TCP);
 				memset(buffer, 0, sizeof(buffer));
-				if((status = read_nbytes(buffer, &nread, BUFFER_TCP)) == ERR)
+				if((status = read_nbytes(buffer, &nread, sizeof(buffer))) == ERR)
 				{
 					fprintf(stderr, "[!]Error receiving from server\n");
 					return NOK;
+				}
+				
+				if(nread < BUFFER_TCP){
+					notmax = 1;
+				}
+				else if(nread == BUFFER_TCP){
+					notmax = 0;
 				}
 
 				i = 0;
 			}
 		}
+	}
 
+	//TODO retrieve
 
+	return OK;
+}
+
+/*
 		else
 		{
 			fprintf(stderr, "[!]Response doesn't follow protocol");
 		}
 
-		/*if (strncmp(buffer, "RRT", 3) ==)
+		if (strncmp(buffer, "RRT", 3) ==)
 		{
 			while ((c = buffer[i]) != '\n')
 			{
@@ -557,12 +722,6 @@ int receive_message_tcp()
 					i = 0;
 				}
 		}*/
-	}
-
-	//TODO retrieve
-
-	return OK;
-}
 
 int tcp_send(const char *ds_ip, const char *ds_port, char *message, int size, char *filename)
 {
