@@ -220,6 +220,7 @@ int main(int argc, char *argv[])
 		system("clear");
 		printf("Commands:\n[?]U REG UID PASS\n[?]U UNR UID PASS\n[?]U LOG UID PASS\n[?]U OUT UID PASS\n[?]U GLS\n[?]U GSR UID GID GName\n[?]U GUR UID GID\n[?]U GLM UID\n[?]T ULS GID\n[?]T PST UID GID Tsize text [Fname Fsize data]\n[?]T RTV UID GID MID\n\n[?]");
 		fgets(buffer, sizeof(buffer), stdin);
+		buffer[strlen(buffer) -1] ='\0';
 		//*Register user
 		if (buffer[0] == 'U')
 		{
@@ -264,7 +265,7 @@ int main(int argc, char *argv[])
 		} */
 
 		//buffer[strlen(buffer) -1] = '\0';
-		//printf("test: %s\n", regex_test("^[[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3} [[:digit:]]{1,10} [^\\0]", buffer)? "true" : "false");
+		printf("test: %s\n", regex_test("^(RGL|RGM) (0|\\b([1-9]|[1-9][0-9])\\b( [[:digit:]]{2} [[:alnum:]_-]{1,24} [[:digit:]]{4})+)$", buffer)? "true" : "false");
 
 		/* if ((n = scandir(".", &groups, NULL, alphasort)) == -1)
 		{

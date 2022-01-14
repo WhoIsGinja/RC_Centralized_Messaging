@@ -29,6 +29,7 @@ char DSport[PORT_SIZE];
 void reg()
 {
     char *uid, *pass;
+    int status;
     char message[MESSAGE_SIZE];
 
     uid = strtok(NULL, " ");
@@ -36,13 +37,27 @@ void reg()
 
     sprintf(message, "REG %s %s\n", uid, pass);
 
-    udp_send(DSIP, DSport, message, strlen(message));
+    status = udp_send(DSIP, DSport, message, strlen(message));
+
+    if (status == OK)
+    {
+        printf("[<]Successfully registered user with id of %s\n", uid);
+    }
+    else if (status == DUP)
+    {
+        printf("[<]User with id of %s already exists\n", uid);
+    }
+    else if (status == NOK)
+    {
+        printf("[<]Unable to create user with id of %s\n", uid);
+    }
 }
 
 //* Unregister user
 void unr()
 {
     char *uid, *pass;
+    int status;
     char message[MESSAGE_SIZE];
 
     uid = strtok(NULL, " ");
@@ -50,13 +65,31 @@ void unr()
 
     sprintf(message, "UNR %s %s\n", uid, pass);
 
-    udp_send(DSIP, DSport, message, strlen(message));
+    status = udp_send(DSIP, DSport, message, strlen(message));
+
+    if (status == OK)
+    {
+        printf("[<]Successfully unregistered user with id of %s\n", uid);
+        //*If unregister user that is logged in
+        if (strcmp(uid, user.uid) == 0)
+        {
+            user.logged = false;
+            memset(user.uid, 0, 6);
+            memset(user.pass, 0, 9);
+            memset(user.gid, 0, 3);
+        }
+    }
+    else if (status == NOK)
+    {
+        printf("[<]Unable to unregister user with id of %s\n", uid);
+    }
 }
 
 //* Login user
 void login()
 {
     char *uid, *pass;
+    int status;
     char message[MESSAGE_SIZE];
 
     //*Check if there is already a log in
@@ -71,17 +104,25 @@ void login()
 
     sprintf(message, "LOG %s %s\n", uid, pass);
 
-    if (udp_send(DSIP, DSport, message, strlen(message)) == OK)
+    status = udp_send(DSIP, DSport, message, strlen(message));
+
+    if (status == OK)
     {
+        printf("[<]Successfully logged in with user %s\n", uid);
         sprintf(user.uid, "%s", uid);
         sprintf(user.pass, "%s", pass);
         user.logged = true;
+    }
+    else if (status == NOK)
+    {
+        printf("[<]Unable to log in with %s\n", uid);
     }
 }
 
 //* Logout user
 void logout()
 {
+    int status;
     char message[MESSAGE_SIZE];
 
     //* Check if there is no login
@@ -93,13 +134,20 @@ void logout()
 
     sprintf(message, "OUT %s %s\n", user.uid, user.pass);
 
-    if (udp_send(DSIP, DSport, message, strlen(message)) == OK)
+    status = udp_send(DSIP, DSport, message, strlen(message));
+
+    if (status == OK)
     {
         //*Localy clean user info
+        printf("[<]Successfully logged out with %s\n", user.uid);
         user.logged = false;
         memset(user.uid, 0, 6);
         memset(user.pass, 0, 9);
         memset(user.gid, 0, 3);
+    }
+    else if (status == NOK)
+    {
+        printf("[<]Unable to log out with %s\n", user.uid);
     }
 }
 
@@ -130,6 +178,7 @@ void groups()
 void subscribe()
 {
     char *gid, *gname;
+    int status;
     char message[MESSAGE_SIZE];
 
     //* Check if there is no login
@@ -144,13 +193,38 @@ void subscribe()
 
     sprintf(message, "GSR %s %s %s\n", user.uid, gid, gname);
 
-    udp_send(DSIP, DSport, message, strlen(message));
+    status = udp_send(DSIP, DSport, message, strlen(message));
+    if(status == OK)
+    {
+        printf("[<]Successfully subscribed to group %s\n", gid);
+    }
+    else if(status == NOK)
+    {
+        printf("[<]Unable to subscribe to group %s\n", gid);
+    }
+    else if(status == E_USR)
+    {
+        printf("[<]Problems with user id %s\n", user.uid);
+    }
+    else if(status == E_GRP)
+    {
+        printf("[<]Group id of %s doesn't exist\n", gid);
+    }
+    else if(status == E_GNAME)
+    {
+        printf("[<]Group name \"%s\" doesn't match gid\n", gname, gid);
+    }
+    else if(status == E_FULL)
+    {
+        printf("[<]Group is full\n", gid);
+    }
 }
 
 //* Leave a group
 void unsubscribe()
 {
     char *gid;
+    int status;
     char message[MESSAGE_SIZE];
 
     //* Check if no user if logged in
@@ -164,7 +238,24 @@ void unsubscribe()
 
     sprintf(message, "GUR %s %s\n", user.uid, gid);
 
-    udp_send(DSIP, DSport, message, strlen(message));
+    status = udp_send(DSIP, DSport, message, strlen(message));
+
+    if(status == OK)
+    {
+        printf("[<]Successfully unsubscribed to group %s\n", gid);
+    }
+    else if(status == NOK)
+    {
+        printf("[<]Unable to unsubscribe to group %s\n", gid);
+    }
+    else if(status == E_USR)
+    {
+        printf("[<]Problems with user id %s\n", user.uid);
+    }
+    else if(status == E_GRP)
+    {
+        printf("[<]Group id of %s doesn't exist\n", gid);
+    }
 }
 
 //* Show groups the current user is subscribed
@@ -353,6 +444,8 @@ int main(int argc, char *argv[])
         }
     }
 
+	setvbuf(stdout, buffer, _IOLBF, sizeof(buffer));
+    
     printf("[=]Connection with server at %s:%s\n\n", DSIP, DSport);
 
     while (true)
