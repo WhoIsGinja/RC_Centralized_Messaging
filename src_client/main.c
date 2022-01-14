@@ -329,9 +329,8 @@ int main(int argc, char *argv[])
     {
         fprintf(stderr, "[!]Getting host name\n");
     }
-    //strcpy(DSIP, buffer);
-    strcpy(DSIP, "tejo.tecnico.ulisboa.pt");
-    strcpy(DSport, "58011");
+    strcpy(DSIP, buffer);
+    strcpy(DSport, "58005");
 
     while ((opt = getopt(argc, argv, ":n:p:")) != -1)
     {

@@ -22,6 +22,58 @@ char f_gid[3];
 //* Mid to filter msg
 int f_mid;
 
+//* Filters groups
+int filter_groups(const struct dirent *entry)
+{
+    char buffer[BUFFER_1KB];
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+    {
+        return 0;
+    }
+
+    if (f_uid[0] != 0)
+    {
+        sprintf(buffer, "%s/%s/%s.txt", GROUPS, entry->d_name, f_uid);
+        return (access(buffer, F_OK) == 0);
+    }
+
+    return 1;
+}
+
+//* Filter users
+int filter_users(const struct dirent *entry)
+{
+    char buffer[BUFFER_64B];
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, "MSG") == 0)
+    {
+        return 0;
+    }
+
+    sprintf(buffer, "%s_name.txt", f_gid);
+
+    return (strcmp(entry->d_name, buffer) != 0);
+}
+
+//* Filter msg
+int filter_msgs(const struct dirent *entry)
+{
+    int mid;
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+    {
+        return 0;
+    }
+
+    mid = atoi(entry->d_name);
+
+    if (mid >= f_mid && mid < f_mid + 20)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
+//* Creat basic data structure
 void init_server_data()
 {
     if (mkdir("data_server", S_IRWXU) == -1 && errno != EEXIST)
@@ -42,191 +94,7 @@ void init_server_data()
         exit(1);
     }
 }
-
-//* User Management
-int check_pass(const char *uid, const char *pass)
-{
-    char buffer[BUFFER_64B];
-    FILE *f = NULL;
-
-    //*Get password
-    sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
-    if ((f = fopen(buffer, "r")) == NULL)
-    {
-        if (errno != ENOENT)
-        {
-            fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
-        }
-        return NOK;
-    }
-    if (fgets(buffer, sizeof(buffer), f) == NULL)
-    {
-        fprintf(stderr, "[!]Reading user(%s) password\n", uid);
-        fclose(f);
-        return NOK;
-    }
-    fclose(f);
-
-    //* Compare password
-    if (strcmp(pass, buffer) != 0)
-    {
-        return NOK;
-    }
-
-    return OK;
-}
-
-int user_create(const char *uid, const char *pass)
-{
-    char buffer[BUFFER_64B];
-    FILE *f = NULL;
-
-    // *Create user directory
-    sprintf(buffer, "%s/%s", USERS, uid);
-    if (mkdir(buffer, S_IRWXU) == -1)
-    {
-        if (errno == EEXIST)
-        {
-            return DUP;
-        }
-
-        fprintf(stderr, "[!]Creating user(%s) directory: %s\n", uid, strerror(errno));
-        return NOK;
-    }
-
-    //* Create password file
-    sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
-    if ((f = fopen(buffer, "w+")) == NULL)
-    {
-        fprintf(stderr, "[!]Creating user(%s) password: %s\n", uid, strerror(errno));
-
-        //* Delete user diretory
-        sprintf(buffer, "%s/%s", USERS, uid);
-        if (remove(buffer) == -1)
-        {
-            fprintf(stderr, "[!]Deleting user(%s) directory: %s\n", uid, strerror(errno));
-            return NOK;
-        }
-
-        return NOK;
-    }
-
-    //* Write password
-    if (fputs(pass, f) == EOF)
-    {
-        fclose(f);
-
-        fprintf(stderr, "[!]Saving user(%s) password\n", uid);
-
-        //* Delete password file
-        sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
-        if (remove(buffer) == -1)
-        {
-            fprintf(stderr, "[!]Deleting user(%s) password: %s\n", uid, strerror(errno));
-            return NOK;
-        }
-
-        //* Delete user directory
-        sprintf(buffer, "%s/%s", USERS, uid);
-        if (remove(buffer) == -1)
-        {
-            fprintf(stderr, "[!]Deleting user(%s) diretory: %s\n", uid, strerror(errno));
-            return NOK;
-        }
-
-        return NOK;
-    }
-
-    fclose(f);
-
-    return OK;
-}
-
-int user_delete(const char *uid, const char *pass)
-{
-    char buffer[BUFFER_64B];
-
-    if (check_pass(uid, pass) == NOK)
-    {
-        return NOK;
-    }
-
-    //* Delete user login
-    sprintf(buffer, "%s/%s/%s_login.txt", USERS, uid, uid);
-    if (remove(buffer) == -1 && errno != ENOENT)
-    {
-        fprintf(stderr, "[!]Deleting user(%s) login: %s\n", uid, strerror(errno));
-        return NOK;
-    }
-
-    //* Delete user password
-    sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
-    if (remove(buffer) == -1)
-    {
-        fprintf(stderr, "[!]Deleting user(%s) password: %s\n", uid, strerror(errno));
-        return NOK;
-    }
-
-    //* Delete user directory
-    sprintf(buffer, "%s/%s", USERS, uid);
-    if (remove(buffer) == -1)
-    {
-        fprintf(stderr, "[!]Deleting user(%s) diretory: %s\n", uid, strerror(errno));
-        return NOK;
-    }
-
-    return OK;
-}
-
-int user_entry(const char *uid, const char *pass, bool login)
-{
-    char buffer[BUFFER_64B];
-    FILE *f = NULL;
-
-    if (check_pass(uid, pass) == NOK)
-    {
-        return NOK;
-    }
-
-    //* Create login file
-    sprintf(buffer, "%s/%s/%s_login.txt", USERS, uid, uid);
-    if (login && (f = fopen(buffer, "w+")) == NULL)
-    {
-        fprintf(stderr, "[!]Creating user(%s) login: %s", uid, strerror(errno));
-        return NOK;
-    }
-    //* Delete login file
-    else if (!login && remove(buffer) == -1 && errno != ENOENT)
-    {
-        fprintf(stderr, "[!]Creating user(%s) logout: %s", uid, strerror(errno));
-        return NOK;
-    }
-
-    if (f != NULL)
-    {
-        fclose(f);
-    }
-
-    return OK;
-}
-
-int user_logged(const char *uid)
-{
-    char buffer[BUFFER_64B];
-
-    sprintf(buffer, "%s/%s/%s_login.txt", USERS, uid, uid);
-    if (access(buffer, F_OK) != 0)
-    {
-        if (errno != ENOENT)
-        {
-            fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
-        }
-        return NOK;
-    }
-
-    return OK;
-}
-
+ 
 //* Groups Management
 int group_create(const char *uid, const char *gname)
 {
@@ -242,8 +110,7 @@ int group_create(const char *uid, const char *gname)
     }
 
     //* Number of groups
-    for (gnum = -1; readdir(d) != NULL; gnum++)
-        ;
+    for (gnum = -1; readdir(d) != NULL; gnum++);
 
     closedir(d);
 
@@ -414,24 +281,6 @@ int group_remove(const char *uid, const char *gid)
     return OK;
 }
 
-//* Filters groups
-int filter_groups(const struct dirent *entry)
-{
-    char buffer[BUFFER_1KB];
-    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-    {
-        return 0;
-    }
-
-    if (f_uid[0] != 0)
-    {
-        sprintf(buffer, "%s/%s/%s.txt", GROUPS, entry->d_name, f_uid);
-        return (access(buffer, F_OK) == 0);
-    }
-
-    return 1;
-}
-
 int groups_get(char **glist, const char *uid)
 {
     struct dirent **groups;
@@ -528,20 +377,6 @@ int groups_get(char **glist, const char *uid)
     return OK;
 }
 
-//* Filter users
-int filter_users(const struct dirent *entry)
-{
-    char buffer[BUFFER_64B];
-    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0 || strcmp(entry->d_name, "MSG") == 0)
-    {
-        return 0;
-    }
-
-    sprintf(buffer, "%s_name.txt", f_gid);
-
-    return (strcmp(entry->d_name, buffer) != 0);
-}
-
 int group_users(char **ulist, const char *gid)
 {
     struct dirent **users;
@@ -569,7 +404,6 @@ int group_users(char **ulist, const char *gid)
     //* Allocate memory for list
     if ((*ulist = (char *)calloc(32 + unum * 6, sizeof(char))) == NULL)
     {
-        free(users);
         fprintf(stderr, "[!]Allocating memory for response\n");
         free(users);
         return NOK;
@@ -600,6 +434,8 @@ int group_users(char **ulist, const char *gid)
         strcat(*ulist, " ");
         strncat(*ulist, users[i]->d_name, 5);
     }
+
+    free(users);
 
     return OK;
 }
@@ -633,8 +469,7 @@ int group_msg_add(const char *uid, const char *gid, const char *text, char *mid)
     }
 
     //* Number of messages
-    for (mnum = -1; readdir(d) != NULL; mnum++)
-        ;
+    for (mnum = -1; readdir(d) != NULL; mnum++);
 
     closedir(d);
 
@@ -788,25 +623,6 @@ int group_msg_file(const char *gid, const char *mid, const char *filename, char 
     return OK;
 }
 
-//* Filter msg
-int filter_msgs(const struct dirent *entry)
-{
-    int mid;
-    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
-    {
-        return 0;
-    }
-
-    mid = atoi(entry->d_name);
-
-    if (mid >= f_mid && mid < f_mid + 20)
-    {
-        return 1;
-    }
-
-    return 0;
-}
-
 int group_msgs_get(const char *uid, const char *gid, const char *mid, char *pathname, struct dirent ***mids, int *nmsg)
 {
     char buffer[BUFFER_1KB];
@@ -826,6 +642,217 @@ int group_msgs_get(const char *uid, const char *gid, const char *mid, char *path
     if ((*nmsg = scandir(buffer, mids, filter_msgs, alphasort)) == -1)
     {
         fprintf(stderr, "[!]Getting messages: %s\n", strerror(errno));
+        return NOK;
+    }
+
+    return OK;
+}
+
+//* User Management
+int check_pass(const char *uid, const char *pass)
+{
+    char buffer[BUFFER_64B];
+    FILE *f = NULL;
+
+    //*Get password
+    sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
+    if ((f = fopen(buffer, "r")) == NULL)
+    {
+        if (errno != ENOENT)
+        {
+            fprintf(stderr, "[!]Opening user(%s) password file: %s\n", uid, strerror(errno));
+        }
+        return NOK;
+    }
+    if (fgets(buffer, sizeof(buffer), f) == NULL)
+    {
+        fprintf(stderr, "[!]Reading user(%s) password\n", uid);
+        fclose(f);
+        return NOK;
+    }
+    fclose(f);
+
+    //* Compare password
+    if (strcmp(pass, buffer) != 0)
+    {
+        return NOK;
+    }
+
+    return OK;
+}
+
+int user_create(const char *uid, const char *pass)
+{
+    char buffer[BUFFER_64B];
+    FILE *f = NULL;
+
+    // *Create user directory
+    sprintf(buffer, "%s/%s", USERS, uid);
+    if (mkdir(buffer, S_IRWXU) == -1)
+    {
+        if (errno == EEXIST)
+        {
+            return DUP;
+        }
+
+        fprintf(stderr, "[!]Creating user(%s) directory: %s\n", uid, strerror(errno));
+        return NOK;
+    }
+
+    //* Create password file
+    sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
+    if ((f = fopen(buffer, "w+")) == NULL)
+    {
+        fprintf(stderr, "[!]Creating user(%s) password: %s\n", uid, strerror(errno));
+
+        //* Delete user diretory
+        sprintf(buffer, "%s/%s", USERS, uid);
+        if (remove(buffer) == -1)
+        {
+            fprintf(stderr, "[!]Deleting user(%s) directory: %s\n", uid, strerror(errno));
+            return NOK;
+        }
+
+        return NOK;
+    }
+
+    //* Write password
+    if (fputs(pass, f) == EOF)
+    {
+        fclose(f);
+
+        fprintf(stderr, "[!]Saving user(%s) password\n", uid);
+
+        //* Delete password file
+        sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
+        if (remove(buffer) == -1)
+        {
+            fprintf(stderr, "[!]Deleting user(%s) password: %s\n", uid, strerror(errno));
+            return NOK;
+        }
+
+        //* Delete user directory
+        sprintf(buffer, "%s/%s", USERS, uid);
+        if (remove(buffer) == -1)
+        {
+            fprintf(stderr, "[!]Deleting user(%s) diretory: %s\n", uid, strerror(errno));
+            return NOK;
+        }
+
+        return NOK;
+    }
+
+    fclose(f);
+
+    return OK;
+}
+
+int user_delete(const char *uid, const char *pass)
+{
+    char buffer[BUFFER_64B];
+    char gid[3];
+    int gnum;
+    struct dirent **groups;
+
+    if (check_pass(uid, pass) == NOK)
+    {
+        return NOK;
+    }
+
+    strcpy(f_uid, uid);
+
+    //* Delete user login
+    sprintf(buffer, "%s/%s/%s_login.txt", USERS, uid, uid);
+    if (remove(buffer) == -1 && errno != ENOENT)
+    {
+        fprintf(stderr, "[!]Deleting user(%s) login: %s\n", uid, strerror(errno));
+        return NOK;
+    }
+
+    //* Delete user password
+    sprintf(buffer, "%s/%s/%s_pass.txt", USERS, uid, uid);
+    if (remove(buffer) == -1)
+    {
+        fprintf(stderr, "[!]Deleting user(%s) password: %s\n", uid, strerror(errno));
+        return NOK;
+    }
+
+    //* Delete user directory
+    sprintf(buffer, "%s/%s", USERS, uid);
+    if (remove(buffer) == -1)
+    {
+        fprintf(stderr, "[!]Deleting user(%s) diretory: %s\n", uid, strerror(errno));
+        return NOK;
+    }
+
+    //* Get groups
+    if ((gnum = scandir(GROUPS, &groups, filter_groups, alphasort)) == -1)
+    {
+        fprintf(stderr, "[!]Getting groups: %s\n", strerror(errno));
+        return NOK;
+    }
+
+    if (gnum == 0)
+    {
+        free(groups);
+        return OK;
+    }
+
+    //* Remove user from groups
+    for (int i = 0; i < gnum; i++)
+    {
+        strncpy(gid, groups[i]->d_name, 3);
+        group_remove(uid, gid);
+    }
+
+    free(groups);
+
+    return OK;
+}
+
+int user_entry(const char *uid, const char *pass, bool login)
+{
+    char buffer[BUFFER_64B];
+    FILE *f = NULL;
+
+    if (check_pass(uid, pass) == NOK)
+    {
+        return NOK;
+    }
+
+    //* Create login file
+    sprintf(buffer, "%s/%s/%s_login.txt", USERS, uid, uid);
+    if (login && (f = fopen(buffer, "w+")) == NULL)
+    {
+        fprintf(stderr, "[!]Creating user(%s) login: %s", uid, strerror(errno));
+        return NOK;
+    }
+    //* Delete login file
+    else if (!login && remove(buffer) == -1 && errno != ENOENT)
+    {
+        fprintf(stderr, "[!]Creating user(%s) logout: %s", uid, strerror(errno));
+        return NOK;
+    }
+
+    if (f != NULL)
+    {
+        fclose(f);
+    }
+
+    return OK;
+}
+
+int user_logged(const char *uid)
+{
+    char buffer[BUFFER_64B];
+
+    sprintf(buffer, "%s/%s/%s_login.txt", USERS, uid, uid);
+    if (access(buffer, F_OK) != 0)
+    {
+        if (errno != ENOENT)
+        {
+            fprintf(stderr, "[!]Getting user(%s) login file: %s\n", uid, strerror(errno));
+        }
         return NOK;
     }
 

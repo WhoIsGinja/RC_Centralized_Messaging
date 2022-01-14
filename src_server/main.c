@@ -444,8 +444,13 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
 	{
 		if ((n = read(connfd, ptr, nleft)) == -1)
 		{
-			fprintf(stderr, "[!]Error receiving from client: %s\n", strerror(errno));
+			fprintf(stderr, "[!]Receiving from client: %s\n", strerror(errno));
 			return ERR;
+		}
+		else if(n == 0)
+		{
+			fprintf(stderr, "[!]Client disconnected\n");
+			exit(1);
 		}
 
 		if (ptr[n - 1] == '\n')
@@ -510,14 +515,10 @@ int post_msg(char *gid, char *mid, char **fileinfo)
 	//* Message has file
 	if (text[tsize] == ' ')
 	{
-		text[tsize] = '\0';
-
 		*fileinfo = text + tsize + 1;
 	}
-	else
-	{
-		text[tsize] = '\0';
-	}
+
+	text[tsize] = '\0';
 
 	//* Create message information and text
 	status = group_msg_add(uid, gid, text, mid);
@@ -600,8 +601,8 @@ int retrieve()
 	int status;
 	FILE *f;
 	DIR *d;
-	struct dirent **mids;
-	struct dirent *entry;
+	struct dirent** mids;
+	struct dirent* entry;
 	int nmsg, n;
 	char gpathname[BUFFER_64B];
 	char current_mid[BUFFER_64B * 2];
@@ -822,6 +823,8 @@ void tcp_commands(char *buffer, int nread)
 				free(ulist);
 				exit(1);
 			}
+
+			free(ulist);
 		}
 	}
 	//* Post
