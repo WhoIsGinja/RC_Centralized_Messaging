@@ -31,11 +31,3 @@ protocol_constants.o: protocol_constants.c protocol_constants.h
 
 clean:
 	rm protocol_constants.o src_client/*.o src_client/auxiliar/*.o client src_server/auxiliar/data_manager.o src_server/*.o server
-
-rclient:
-	clear
-	./client
-
-rserver:
-	clear
-	./server
