@@ -435,12 +435,19 @@ int receive_message_tcp()
 		token = strtok(NULL, " ");
 		messages = atoi(token);
 
+		//* arithmetic so 'i' is the buffer position with the first MID
 		i = 8 + strlen(token);
+		
 		state = 0;
 		j = 0;
 		memset(aux, 0, sizeof(aux));
+		
+		//*State machine to read messages byte by byte
 		while (messages > 0)
 		{
+			//*if statements to change states
+
+			//* case 0: reads MID
 			if (state == 0 && buffer[i] == ' ')
 			{
 				printf("[%s]\n", aux);
@@ -449,12 +456,14 @@ int receive_message_tcp()
 
 				state = 1;
 			}
+			//* state 1: reads UID
 			else if (state == 1 && buffer[i] == ' ')
 			{
 				memset(aux, 0, j);
 				j = 0;
 				state = 2;
 			}
+			//* state 2: reads text size
 			else if (state == 2 && buffer[i] == ' ')
 			{
 				tsize = atoi(aux) + 1;
@@ -463,6 +472,7 @@ int receive_message_tcp()
 				j = 0;
 				state = 3;
 			}
+			//* state 3: reading text of message
 			else if (state == 3 && tsize == 0)
 			{
 				printf("[Text]%s\n", aux);
@@ -471,6 +481,7 @@ int receive_message_tcp()
 				state = 4;
 				fsize = 0;
 			}
+			//* state 4: message with no file
 			else if ((state == 4) && (buffer[i] >= '0') && (buffer[i] <= '9'))
 			{
 				j = 0;
@@ -478,12 +489,14 @@ int receive_message_tcp()
 				messages--;
 				printf("\n");
 			}
+			//* state 4: message with file
 			else if (state == 4 && buffer[i] == '/')
 			{
 				i++;
 				j = 0;
 				state = 5;
 			}
+			//* state 5: reads file name
 			else if (state == 5 && buffer[i] == ' ')
 			{
 				printf("[File]%s\n", aux);
@@ -492,7 +505,7 @@ int receive_message_tcp()
 				j = 0;
 				state = 6;
 			}
-
+			//* state 6: reads file size
 			else if (state == 6 && buffer[i] == ' ')
 			{
 				fsize = strtoll(aux, NULL, 0);
@@ -505,7 +518,7 @@ int receive_message_tcp()
 				state = 7;
 				i++;
 			}
-
+			//*state 7: reads file data and there are more messages to retrieve
 			else if (state == 7 && fsize == 0 && buffer[i] == ' ')
 			{
 				fwrite(data, sizeof(char), j, f);
@@ -518,10 +531,11 @@ int receive_message_tcp()
 				fsize = -1;
 				printf("\n");
 			}
-
+			//*state 7: reads file data and there no messages to retrieve
 			else if (state == 7 && fsize == 0 && buffer[i] == '\n')
 
 			{
+				//*fwrite to write the last byte in the receiving file
 				fwrite(data, sizeof(char), j, f);
 				memset(data, 0, BUFFER_2KB);
 				fclose(f);
@@ -615,7 +629,8 @@ int receive_message_tcp()
 				break;
 			}
 			i++;
-			//* ENDS THE LOOP
+			
+			//*Ends loop
 			if (i == nread && notmax == 1 && fsize == 0)
 			{
 				if (messages == 1)
@@ -624,6 +639,7 @@ int receive_message_tcp()
 					;
 				}
 			}
+			
 			//*When buffer is all read
 			if (i == nread)
 			{
@@ -634,6 +650,7 @@ int receive_message_tcp()
 					return NOK;
 				}
 
+				//* 'notmax' is used to check if the buffer is at max capacity
 				if (nread < BUFFER_2KB)
 				{
 					notmax = 1;
