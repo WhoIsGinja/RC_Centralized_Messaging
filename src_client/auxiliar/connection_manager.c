@@ -410,19 +410,14 @@ int receive_message_tcp()
 	{
 
 		FILE *f;
-		//char *data = NULL;
 		char *filename;
 		char aux[BUFFER_2KB], data[BUFFER_2KB];
 		long long fsize;
-		//ssize_t n;
 		int status;
 		int messages, state;
-		//char mid[4], uid[5];
-		//char *txtsize, *filesize;
 		int i, tsize;
 		int j, tsizemax;
 		int notmax = 0;
-		//int ti, fi;
 
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
@@ -582,12 +577,6 @@ int receive_message_tcp()
 				j++;
 				tsize--;
 				break;
-			/*case 4:
-					if(buffer[i] == ' '){
-						memset(aux, 0, j);
-						break;
-					}
-					break;*/
 			case 5:
 				if (buffer[i] == ' ')
 				{
@@ -640,7 +629,6 @@ int receive_message_tcp()
 			//*When buffer is all read
 			if (i == nread)
 			{
-				//bzero(data, BUFFER_2KB);
 				memset(buffer, 0, sizeof(buffer));
 				if ((status = read_nbytes(buffer, &nread, sizeof(buffer))) == ERR)
 				{
