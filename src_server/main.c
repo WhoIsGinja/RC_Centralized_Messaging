@@ -447,9 +447,11 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
 			fprintf(stderr, "[!]Receiving from client: %s\n", strerror(errno));
 			return ERR;
 		}
-		else if (n == 0)
+
+		else if(n == 0)
 		{
 			fprintf(stderr, "[!]Client disconnected\n");
+			printf("\n");
 			exit(1);
 		}
 
@@ -515,14 +517,10 @@ int post_msg(char *gid, char *mid, char **fileinfo)
 	//* Message has file
 	if (text[tsize] == ' ')
 	{
-		text[tsize] = '\0';
-
 		*fileinfo = text + tsize + 1;
 	}
-	else
-	{
-		text[tsize] = '\0';
-	}
+	text[tsize] = '\0';
+
 
 	//* Create message information and text
 	status = group_msg_add(uid, gid, text, mid);
@@ -839,7 +837,7 @@ void tcp_commands(char *buffer, int nread)
 		char *file;
 
 		//* Test message format
-		if (!regex_test("^PST [[:digit:]]{5} [[:digit:]]{2} \\b([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-3][0-9]|240)\\b .{1,240}", buffer))
+		if (!regex_test("^PST [[:digit:]]{5} [[:digit:]]{2} ([1-9]|[1-9][0-9]|1[0-9][0-9]|2[0-3][0-9]|240) .{1,240}", buffer))
 		{
 			printf("Post bad request\n");
 			sprintf(buffer, "RPT %s\n", strstatus(NOK));
