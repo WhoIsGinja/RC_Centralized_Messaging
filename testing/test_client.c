@@ -80,7 +80,7 @@ int receive_message_udp()
 {
 	socklen_t addrlen;
 	struct sockaddr_in addr;
-	char buffer[BUFFER];
+	char buffer[4096];
 	addrlen = sizeof(addr);
 	ssize_t n;
 
@@ -159,7 +159,6 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, const char *message
 	return OK;
 }
 
-/*copied, needs adjustments*/
 int receive_message_tcp()
 {
 	int n; // offset, jump = 6;
@@ -221,15 +220,18 @@ int main(int argc, char *argv[])
 		system("clear");
 		printf("Commands:\n[?]U REG UID PASS\n[?]U UNR UID PASS\n[?]U LOG UID PASS\n[?]U OUT UID PASS\n[?]U GLS\n[?]U GSR UID GID GName\n[?]U GUR UID GID\n[?]U GLM UID\n[?]T ULS GID\n[?]T PST UID GID Tsize text [Fname Fsize data]\n[?]T RTV UID GID MID\n\n[?]");
 		fgets(buffer, sizeof(buffer), stdin);
-		printf("\n[+]%s\n[-]", buffer);
 		//*Register user
 		if (buffer[0] == 'U')
 		{
+			printf("\n[+]%s\n[-]", buffer+2);
+
 			udp_send(DSIP, DSport, buffer + 2, strlen(buffer + 2));
 		}
 		//*Unregister user
 		else if (buffer[0] == 'T')
 		{
+			printf("\n[+]%s\n[-]", buffer+2);
+
 			tcp_send(DSIP, DSport, buffer + 2, strlen(buffer + 2));
 		}
 
@@ -261,7 +263,8 @@ int main(int argc, char *argv[])
 			}
 		} */
 
-		printf("test: %s\n", regex_test("^PST\\b", buffer)? "true" : "false");
+		//buffer[strlen(buffer) -1] = '\0';
+		//printf("test: %s\n", regex_test("^[[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3} [[:digit:]]{1,10} [^\\0]", buffer)? "true" : "false");
 
 		/* if ((n = scandir(".", &groups, NULL, alphasort)) == -1)
 		{
@@ -269,7 +272,7 @@ int main(int argc, char *argv[])
 		}
 		while(n--)
 		printf("%s\n", groups[n]->d_name); */
-		
+
 		fgets(buffer, sizeof(buffer), stdin);
 	}
 

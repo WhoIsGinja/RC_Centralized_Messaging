@@ -25,7 +25,6 @@ struct user_info user;
 char DSIP[IP_SIZE];
 char DSport[PORT_SIZE];
 
-
 //* Register user
 void reg()
 {
@@ -114,7 +113,7 @@ void showuid()
         return;
     }
 
-    printf("[-]Current user ID: %s\n", user.uid);
+    printf("[<]Current user ID: %s\n", user.uid);
 }
 
 //* Show all groups
@@ -199,8 +198,9 @@ void sag()
 
     gid = strtok(NULL, " ");
 
-
     sprintf(user.gid, "%s", gid);
+
+    printf("[<]Selected group %s\n", gid);
 }
 
 //* Show current selected group
@@ -220,7 +220,7 @@ void showgid()
         return;
     }
 
-    printf("[-]Selected group ID: %s\n", user.gid);
+    printf("[<]Selected group ID: %s\n", user.gid);
 }
 
 //* Show all users of current selected group
@@ -250,7 +250,8 @@ void ulist()
 //* Sends a message to the current group
 void post()
 {
-    char *text, *filename;
+    char *text, *textend;
+    char *filename = NULL;
     char post[POST_SIZE];
 
     //* Check if there is no login
@@ -266,8 +267,14 @@ void post()
         return;
     }
 
-    text = strtok(NULL, "\"");
-    filename = strtok(NULL, "\0");
+    text = strtok(NULL, "");
+    textend = rindex(++text, '\"');
+    textend[0] = '\0';
+
+    if (textend[1] == ' ')
+    {
+        filename = textend + 2;
+    }
 
     sprintf(post, "PST %s %s %ld %s\n", user.uid, user.gid, strlen(text), text);
     if (filename == NULL)
@@ -276,7 +283,7 @@ void post()
     }
     else
     {
-        tcp_send(DSIP, DSport, post, strlen(post) - 1, ++filename);
+        tcp_send(DSIP, DSport, post, strlen(post) - 1, filename);
     }
 }
 
@@ -306,7 +313,6 @@ void retrieve()
     tcp_send(DSIP, DSport, message, strlen(message), NULL);
 }
 
-//TODO messages
 int main(int argc, char *argv[])
 {
     int opt;
@@ -338,11 +344,11 @@ int main(int argc, char *argv[])
             strcpy(DSport, optarg);
             break;
         case ':':
-            fprintf(stderr, "[!]Argument needs a value");
+            fprintf(stderr, "[!]Argument needs a value\n");
             exit(1);
             break;
         case '?':
-            fprintf(stderr, "[!]Invalid arguments format");
+            fprintf(stderr, "[!]Invalid option\n");
             exit(1);
             break;
         }
@@ -430,7 +436,7 @@ int main(int argc, char *argv[])
         }
         //*Send a messge to group
         else if (regex_test("^post \".{1,240}\"( [[:alnum:]_.-]{1,20}\\.[[:alnum:]]{3})?$", buffer))
-        {   
+        {
             strtok(buffer, " ");
             post();
         }
