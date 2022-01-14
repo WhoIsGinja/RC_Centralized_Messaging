@@ -84,7 +84,7 @@ int send_message_udp(const char *ds_ip, const char *ds_port, const char *message
 	n = sendto(fd, message, size, 0, res->ai_addr, res->ai_addrlen);
 	if (n == -1)
 	{
-		fprintf(stderr, "[!]Sending to server\n");
+		fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
 		freeaddrinfo(res);
 		return NOK;
 	}
@@ -218,7 +218,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 
 	if ((n = write(fd, message, size) == -1))
 	{
-		fprintf(stderr, "[!]Sending to server\n");
+		fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
 		return NOK;
 	}
 
@@ -247,7 +247,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 		sprintf(buffer, " %s %lld ", filename, fsize);
 		if ((n = write(fd, buffer, strlen(buffer)) == -1))
 		{
-			fprintf(stderr, "[!]Sending to server\n");
+			fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
 			return NOK;
 		}
 
@@ -257,7 +257,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 			n = fread(buffer, sizeof(char), sizeof(buffer), f);
 			if ((n = write(fd, buffer, n) == -1))
 			{
-				fprintf(stderr, "[!]Sending to server\n");
+				fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
 				return NOK;
 			}
 		}
@@ -266,7 +266,7 @@ int send_message_tcp(const char *ds_ip, const char *ds_port, char *message, int 
 
 		if ((n = write(fd, "\n", 1) == -1))
 		{
-			fprintf(stderr, "[!]Sending to server\n");
+			fprintf(stderr, "[!]Sending to server: %s\n", strerror(errno));
 			return NOK;
 		}
 	}
