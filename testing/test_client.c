@@ -265,7 +265,7 @@ int main(int argc, char *argv[])
 		} */
 
 		//buffer[strlen(buffer) -1] = '\0';
-		printf("test: %s\n", regex_test("^(RGL|RGM) (0|\\b([1-9]|[1-9][0-9])\\b( [[:digit:]]{2} [[:alnum:]_-]{1,24} [[:digit:]]{4})+)$", buffer)? "true" : "false");
+		printf("test: %s\n", regex_test("^(RRG (OK|DUP|NOK)|(RUN|RLO|ROU) (OK|NOK)|RGS (OK|NOK|E_USR|E_GRP|E_GNAME|E_FULL|NEW [[:digit:]]{2})|RGU (OK|NOK|E_USR|E_GRP))$", buffer)? "true" : "false");
 
 		/* if ((n = scandir(".", &groups, NULL, alphasort)) == -1)
 		{

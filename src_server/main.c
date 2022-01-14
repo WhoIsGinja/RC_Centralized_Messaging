@@ -455,9 +455,9 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
 
 		if (ptr[n - 1] == '\n')
 		{
+			ptr[n] = '\0';
 			nleft -= n;
 			*nread = nbytes - 1 - nleft;
-			start[*nread + 1] = '\0';
 			return OK;
 		}
 

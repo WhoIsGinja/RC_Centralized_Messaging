@@ -85,8 +85,8 @@ int receive_message_udp()
 	socklen_t addrlen;
 	struct sockaddr_in addr;
 	ssize_t n;
-	char *rcmd, *gid, *gname, *mid;
-	int status, i;
+	char *gid, *gname, *mid;
+	int i;
 	char buffer[BUFFER_2KB * 2];
 
 	addrlen = sizeof(addr);
@@ -106,13 +106,13 @@ int receive_message_udp()
 		strtok(buffer, " ");
 		i = atoi(strtok(NULL, " "));
 
-		if(i == 0)
+		if (i == 0)
 		{
 			printf("[<]No groups found\n");
 		}
 		else
 		{
-			printf("[<]%d groups found:\n");
+			printf("[<]%d groups found:\n", i);
 		}
 
 		for (; i > 0; i--)
@@ -124,21 +124,20 @@ int receive_message_udp()
 			printf("%s: %s (%s)\n", gid, gname, mid);
 		}
 	}
-	else if(regex_test("^(RRG (OK|DUP|NOK)|(RUN|RLO|ROU) (OK|NOK)|RGS (OK|NOK|E_USR|E_GRP|E_GNAME|E_FULL|NEW [[:digit]]{2})|RGU (OK|NOK|E_USR|E_GRP))$", buffer))
+	else if (regex_test("^(RRG (OK|DUP|NOK)|(RUN|RLO|ROU) (OK|NOK)|RGS (OK|NOK|E_USR|E_GRP|E_GNAME|E_FULL|NEW [[:digit:]]{2})|RGU (OK|NOK|E_USR|E_GRP))$", buffer))
 	{
 		int status;
 		strtok(buffer, " ");
-		status = strtok(NULL, " ");
-		
-		if(status == NEW)
+		status = istatus(strtok(NULL, " "));
+
+		if (status == NEW)
 		{
 			printf("[<]New group successfully created with mid of %s\n", strtok(NULL, " "));
 		}
 
 		return status;
-
 	}
-	else if(regex_test("^ERR$", buffer))
+	else if (regex_test("^ERR$", buffer))
 	{
 		printf("[!]Server returned error\n");
 	}
@@ -279,9 +278,9 @@ int read_nbytes(char *start, ssize_t *nread, int nbytes)
 
 		if (ptr[n - 1] == '\n' || n == 0)
 		{
+			ptr[n] = '\0';
 			nleft -= n;
 			*nread = nbytes - 1 - nleft;
-			start[*nread + 1] = '\0';
 			return OK;
 		}
 
@@ -308,7 +307,7 @@ int receive_message_tcp()
 	}
 
 	//* Ulist
-	if (regex_test("^RUL (OK|NOK) [^ ]", buffer))
+	if (regex_test("^RUL (OK\\\n$|NOK) [^ ]", buffer))
 	{
 		int ulistLeft;
 		int ulistSize;
@@ -316,7 +315,7 @@ int receive_message_tcp()
 
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
-		if (istatus(token) == NOK)
+		if (strncmp(token, "NOK", 3) == 0)
 		{
 			printf("[-]Group doesn't exist\n");
 			return NOK;
@@ -377,11 +376,12 @@ int receive_message_tcp()
 	}
 
 	//* Post
-	else if (regex_test("^RPT ([[:digit:]]{4}$|NOK)", buffer))
+	else if (regex_test("^RPT ([[:digit:]]{4}|NOK)\\\n$", buffer))
 	{
+		buffer[strlen(buffer) - 1] = '\0';
 		strtok(buffer, " ");
-		token = strtok(NULL, " ");
-		if (strcmp("NOK", token) == 0)
+		token = strtok(NULL, "");
+		if (istatus(token) == NOK)
 		{
 			printf("[<]Unable to post\n");
 			return NOK;
@@ -391,7 +391,7 @@ int receive_message_tcp()
 	}
 
 	//* Retrieve
-	else if (regex_test("^RRT (NOK$|EOF$|OK [^ ])", buffer))
+	else if (regex_test("^RRT (NOK\\\n$|EOF\\\n$|OK \\b([1-9]|1[0-9]|20)\\b )", buffer))
 	{
 
 		FILE *f;
@@ -411,36 +411,37 @@ int receive_message_tcp()
 
 		strtok(buffer, " ");
 		token = strtok(NULL, " ");
-		if (strcmp("NOK", token) == 0)
+		if (strncmp("NOK", token, 3) == 0)
 		{
-			printf("[-]Unable to post\n");
+			printf("[<]Retieve failed\n");
 			return NOK;
 		}
-		else if (strcmp("EOF", token) == 0)
+		else if (strncmp("EOF", token, 3) == 0)
 		{
-			printf("[-]No messages available");
+			printf("[<]No messages available\n");
 			return EOF;
 		}
+
 		token = strtok(NULL, " ");
 		messages = atoi(token);
 
 		i = 8 + strlen(token);
 		state = 0;
 		j = 0;
+		memset(aux, 0, sizeof(aux));
 		while (messages > 0)
 		{
-			//printf("HEYYYY %d", messages);
 			if (state == 0 && buffer[i] == ' ')
 			{
-				printf("mid: %s\n", aux);
-				bzero(aux, j);
+				printf("[%s]\n", aux);
+				memset(aux, 0, j);
 				j = 0;
 
 				state = 1;
 			}
 			else if (state == 1 && buffer[i] == ' ')
 			{
-				bzero(aux, j);
+				memset(aux, 0, j);
 				j = 0;
 				state = 2;
 			}
@@ -448,15 +449,15 @@ int receive_message_tcp()
 			{
 				tsize = atoi(aux) + 1;
 				tsizemax = tsize;
-				bzero(aux, j);
+				memset(aux, 0, j);
 				j = 0;
 				state = 3;
 			}
 			else if (state == 3 && tsize == 0)
 			{
 				//aux[j] = '\0';
-				printf("text: %s\n", aux);
-				bzero(aux, j);
+				printf("[Text]%s\n", aux);
+				memset(aux, 0, j);
 				j = 0;
 				state = 4;
 				fsize = 0;
@@ -476,9 +477,9 @@ int receive_message_tcp()
 			}
 			else if (state == 5 && buffer[i] == ' ')
 			{
-				printf("file name: %s\n", aux);
+				printf("[File]%s\n", aux);
 				filename = strdup(aux);
-				bzero(aux, j);
+				memset(aux, 0, j);
 				j = 0;
 				state = 6;
 			}
@@ -486,7 +487,7 @@ int receive_message_tcp()
 			else if (state == 6 && buffer[i] == ' ')
 			{
 				fsize = strtoll(aux, NULL, 0);
-				bzero(aux, j);
+				memset(aux, 0, j);
 				j = 0;
 				if ((f = fopen(filename, "w")) == NULL)
 				{
@@ -524,7 +525,7 @@ int receive_message_tcp()
 			case 0:
 				if (buffer[i] == ' ')
 				{
-					bzero(aux, j);
+					memset(aux, 0, j);
 					j = 0;
 					break;
 				}
@@ -534,7 +535,7 @@ int receive_message_tcp()
 			case 1:
 				if (buffer[i] == ' ')
 				{
-					bzero(aux, j);
+					memset(aux, 0, j);
 					j = 0;
 					break;
 				}
@@ -544,7 +545,7 @@ int receive_message_tcp()
 			case 2:
 				if (buffer[i] == ' ')
 				{
-					bzero(aux, j);
+					memset(aux, 0, j);
 					break;
 				}
 				aux[j] = buffer[i];
@@ -568,14 +569,14 @@ int receive_message_tcp()
 				break;
 			/*case 4:
 					if(buffer[i] == ' '){
-						bzero(aux, j);
+						memset(aux, 0, j);
 						break;
 					}
 					break;*/
 			case 5:
 				if (buffer[i] == ' ')
 				{
-					bzero(aux, j);
+					memset(aux, 0, j);
 					j = 0;
 					break;
 				}
@@ -585,7 +586,7 @@ int receive_message_tcp()
 			case 6:
 				if (buffer[i] == ' ')
 				{
-					bzero(aux, j);
+					memset(aux, 0, j);
 					j = 0;
 					break;
 				}

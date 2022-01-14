@@ -212,11 +212,11 @@ void subscribe()
     }
     else if(status == E_GNAME)
     {
-        printf("[<]Group name \"%s\" doesn't match gid\n", gname, gid);
+        printf("[<]Group name \"%s\" doesn't match gid %s\n", gname, gid);
     }
     else if(status == E_FULL)
     {
-        printf("[<]Group is full\n", gid);
+        printf("[<]Group is full\n");
     }
 }
 
@@ -444,8 +444,6 @@ int main(int argc, char *argv[])
         }
     }
 
-	setvbuf(stdout, buffer, _IOLBF, sizeof(buffer));
-    
     printf("[=]Connection with server at %s:%s\n\n", DSIP, DSport);
 
     while (true)
